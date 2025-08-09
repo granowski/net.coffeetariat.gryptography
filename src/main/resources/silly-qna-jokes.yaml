@@ -1,0 +1,481 @@
+# A collection of random, family-friendly, silly Q&A jokes.
+# Schema:
+# jokes:
+#   - question: "..."
+#     answer: "..."
+
+jokes:
+  - question: Why did the scarecrow win an award?
+    answer: Because he was outstanding in his field!
+  - question: Why don’t skeletons fight each other?
+    answer: They don’t have the guts.
+  - question: What do you call fake spaghetti?
+    answer: An impasta!
+  - question: Why did the math book look so sad?
+    answer: Because it had too many problems.
+  - question: Why can’t you give Elsa a balloon?
+    answer: Because she’ll let it go.
+  - question: What do you call cheese that isn’t yours?
+    answer: Nacho cheese!
+  - question: Why couldn’t the bicycle stand up by itself?
+    answer: It was two-tired.
+  - question: What do you call a fish wearing a bowtie?
+    answer: Sofishticated.
+  - question: Why did the golfer bring two pairs of pants?
+    answer: In case he got a hole in one.
+  - question: Why did the computer go to the doctor?
+    answer: It had a virus!
+  - question: How do you organize a space party?
+    answer: You planet.
+  - question: Why did the cookie go to the hospital?
+    answer: Because it felt crumby.
+  - question: What do you call a bear with no teeth?
+    answer: A gummy bear.
+  - question: Why did the tomato turn red?
+    answer: Because it saw the salad dressing!
+  - question: What do you call a can opener that doesn’t work?
+    answer: A can’t opener.
+  - question: Why did the picture go to jail?
+    answer: Because it was framed.
+  - question: Why are elevator jokes so classic and good?
+    answer: They work on many levels.
+  - question: Why don’t eggs tell jokes?
+    answer: They’d crack each other up.
+  - question: What do you call an alligator in a vest?
+    answer: An investigator.
+  - question: How does the ocean say hello?
+    answer: It waves.
+  - question: Why don’t scientists trust atoms?
+    answer: Because they make up everything.
+  - question: What do you call a boomerang that won’t come back?
+    answer: A stick.
+  - question: Why did the gym close down?
+    answer: It just didn’t work out.
+  - question: Why did the orange stop rolling down the hill?
+    answer: It ran out of juice.
+  - question: What do you call a sleeping bull?
+    answer: A bulldozer.
+  - question: Why did the kid bring a ladder to school?
+    answer: Because they wanted to go to high school.
+  - question: What do you call a snowman with a six-pack?
+    answer: An abdominal snowman.
+  - question: Why did the man run around his bed?
+    answer: Because he was trying to catch up on his sleep.
+  - question: Why can’t your nose be 12 inches long?
+    answer: Because then it would be a foot.
+  - question: What do you call a belt made of watches?
+    answer: A waist of time.
+  - question: Why did the scarecrow keep getting promoted?
+    answer: Because he was outstanding in his field.
+  - question: What do you call a factory that makes okay products?
+    answer: A satisfactory.
+  - question: What did the zero say to the eight?
+    answer: Nice belt!
+  - question: How do you make a tissue dance?
+    answer: Put a little boogie in it.
+  - question: Why did the math teacher plant a tree?
+    answer: She wanted to see natural logs.
+  - question: What’s orange and sounds like a parrot?
+    answer: A carrot.
+  - question: Why was the broom late?
+    answer: It overswept.
+  - question: What do you call a line of men waiting to get haircuts?
+    answer: A barberqueue.
+  - question: Why did the stadium get hot after the game?
+    answer: All the fans left.
+  - question: Why was the calendar nervous?
+    answer: Its days were numbered.
+  - question: What kind of music do mummies listen to?
+    answer: Wrap music.
+  - question: Why did the chicken join a band?
+    answer: Because it had the drumsticks.
+  - question: Why did the man put his money in the freezer?
+    answer: He wanted cold hard cash.
+  - question: What do you call a very small Valentine?
+    answer: A valen-tiny.
+  - question: Why did the barber win the race?
+    answer: He knew a shortcut.
+  - question: What did the grape do when it got stepped on?
+    answer: Nothing, it just let out a little wine.
+  - question: What do you call a fish with no eyes?
+    answer: Fsh.
+  - question: Why did the coffee cup file a police report?
+    answer: It got mugged.
+  - question: What do you call a pile of cats?
+    answer: A meowtain.
+  - question: Why did the music teacher need a ladder?
+    answer: To reach the high notes.
+  - question: Why was the computer cold?
+    answer: It left its Windows open.
+  - question: Why don’t oysters donate to charity?
+    answer: Because they’re shellfish.
+  - question: What do you call a dinosaur with an extensive vocabulary?
+    answer: A thesaurus.
+  - question: Why did the banana go to the doctor?
+    answer: Because it wasn’t peeling well.
+  - question: Why was the math lecture so long?
+    answer: The professor kept going off on a tangent.
+  - question: What do you call a lazy kangaroo?
+    answer: A pouch potato.
+  - question: What do you call two birds in love?
+    answer: Tweethearts.
+  - question: Why did the music teacher go to jail?
+    answer: Because she got caught with too many sharp objects.
+  - question: Why did the cookie go to the doctor?
+    answer: It was feeling crumby.
+  - question: What do you call a nervous javelin thrower?
+    answer: Shakespeare.
+  - question: Why did the belt get arrested?
+    answer: It held up a pair of pants.
+  - question: How do you catch a whole school of fish?
+    answer: With bookworms.
+  - question: Why did the banker switch careers?
+    answer: She lost interest.
+  - question: What do you call a dog magician?
+    answer: A labracadabrador.
+  - question: Why couldn’t the leopard play hide and seek?
+    answer: Because he was always spotted.
+  - question: What time did the man go to the dentist?
+    answer: Tooth-hurty.
+  - question: Why are ghosts bad liars?
+    answer: Because they are too transparent.
+  - question: What do you call a cow with no legs?
+    answer: Ground beef.
+  - question: What do you call a cow with two legs?
+    answer: Lean beef.
+  - question: What do you call a cow that just gave birth?
+    answer: De-calf-inated.
+  - question: Why don’t crabs give to charity?
+    answer: Because they’re shellfish.
+  - question: What do you call a sheep covered in chocolate?
+    answer: A candy baa.
+  - question: What do you call a fish that practices medicine?
+    answer: A sturgeon.
+  - question: Why don’t calendars ever panic?
+    answer: They’ve got their days numbered.
+  - question: What did the ocean say to the beach?
+    answer: Nothing, it just waved.
+  - question: Why did the smartphone need glasses?
+    answer: It lost all its contacts.
+  - question: Why was the equal sign so humble?
+    answer: Because it knew it wasn’t less than or greater than anyone else.
+  - question: Why did the candle quit?
+    answer: It was burned out.
+  - question: Why was the belt so stressed?
+    answer: It was always under a lot of pressure.
+  - question: What’s a computer’s favorite snack?
+    answer: Computer chips.
+  - question: How do trees access the internet?
+    answer: They log in.
+  - question: Why did the book join the police?
+    answer: It wanted to go undercover.
+  - question: What’s a skeleton’s least favorite room?
+    answer: The living room.
+  - question: Why are piggy banks so wise?
+    answer: They’re full of common cents.
+  - question: What’s a potato’s favorite form of transportation?
+    answer: The gravy train.
+  - question: What do you get from a pampered cow?
+    answer: Spoiled milk.
+  - question: Why did the frog take the bus to work?
+    answer: His car was toad.
+  - question: What do you call a group of disorganized cats?
+    answer: A cat-astrophe.
+  - question: What did one wall say to the other wall?
+    answer: I’ll meet you at the corner.
+  - question: Why did the bee get married?
+    answer: Because he found his honey.
+  - question: Why couldn’t the pirate play cards?
+    answer: Because he was sitting on the deck.
+  - question: What do you call a deer with no eyes?
+    answer: No eye-deer.
+  - question: How do you make a lemon drop?
+    answer: Just let it fall.
+  - question: Why did the man put his car in the oven?
+    answer: He wanted a hot rod.
+  - question: What do you call a singing laptop?
+    answer: A Dell.
+  - question: Why did the musician bring a ladder on stage?
+    answer: To reach the high notes.
+  - question: Why did the bicycle fall over?
+    answer: Because it was two-tired.
+  - question: What do you call an elephant that doesn’t matter?
+    answer: An irrelephant.
+  - question: Why did the golfer bring an extra shirt?
+    answer: In case he got a hole in one.
+  - question: Why did the computer sit on the floor?
+    answer: It wanted to crash.
+  - question: Why did the scarecrow become a successful neurosurgeon?
+    answer: Outstanding in his field and great with brains.
+  - question: Why did the clock get in trouble in class?
+    answer: It tocked too much.
+  - question: What do you call a knight who is afraid to fight?
+    answer: Sir Render.
+  - question: What do you call a pencil with two erasers?
+    answer: Pointless.
+  - question: Why did the stadium light blush?
+    answer: It saw the other team’s fans.
+  - question: What did the big flower say to the little flower?
+    answer: Hi, bud!
+  - question: Why did the mushroom get invited to the party?
+    answer: Because he’s a fungi.
+  - question: Why can’t a leopard hide?
+    answer: He’s always spotted.
+  - question: What do you call an apology written in dots and dashes?
+    answer: Re-morse code.
+  - question: Why did the tomato turn red at the party?
+    answer: Because it saw the salad dressing.
+  - question: What do you call a sleeping T-Rex?
+    answer: A dino-snore.
+  - question: Why did the music note get good grades?
+    answer: Because it was sharp.
+  - question: What do you call an astronaut’s favorite part of a computer?
+    answer: The space bar.
+  - question: Why did the baker go to therapy?
+    answer: He kneaded it.
+  - question: What kind of key opens a banana?
+    answer: A monkey.
+  - question: Why was the broom promoted?
+    answer: It swept the competition.
+  - question: What do you call a boisterous bouquet?
+    answer: Flower power.
+  - question: Why did the music student bring string to class?
+    answer: To tie the notes together.
+  - question: What do you call a cold dog?
+    answer: A chili dog.
+  - question: Why did the smartphone go to school?
+    answer: To improve its cell-f.
+  - question: Why was the computer’s voice so calm?
+    answer: It had good control of its CAPS.
+  - question: Why do bees have sticky hair?
+    answer: Because they use honeycombs.
+  - question: What do you call a cat on the beach?
+    answer: Sandy claws.
+  - question: What’s a frog’s favorite candy?
+    answer: Lollihops.
+  - question: Why did the belt refuse dessert?
+    answer: It was already on the last notch.
+  - question: Why did the flashlight get good grades?
+    answer: It was really bright.
+  - question: Why did the egg hide?
+    answer: It was a little chicken.
+  - question: What do you call a pig that practices karate?
+    answer: A pork chop.
+  - question: What do you call a sleeping pizza?
+    answer: A nap-olitano.
+  - question: Why did the banana go to school?
+    answer: To become a smart peel.
+  - question: Why did the picture take a vacation?
+    answer: It needed to get out of the frame.
+  - question: Why did the tree worry about its grades?
+    answer: Too many trunks and not enough branches.
+  - question: What do you call a bee that can’t make up its mind?
+    answer: A may-bee.
+  - question: Why did the strawberry cry?
+    answer: It was in a jam.
+  - question: What do you call a sleeping potato?
+    answer: A yawn-tato.
+  - question: Why did the music note go to art class?
+    answer: It wanted to draw a treble.
+  - question: What do you call a rabbit with fleas?
+    answer: Bugs Bunny.
+  - question: Why don’t seagulls fly over the bay?
+    answer: Because then they’d be bagels.
+  - question: Why did the keyboard break up with the computer?
+    answer: It wasn’t their type.
+  - question: Why did the candle study for the test?
+    answer: It wanted to be a bright student.
+  - question: What did one plate say to the other plate?
+    answer: Dinner’s on me.
+  - question: Why did the sheep cross the road?
+    answer: To get to the baaa-ber shop.
+  - question: What do you call a bike that falls over a lot?
+    answer: A tumble-cycle.
+  - question: Why did the tomato sit down?
+    answer: It needed to ketchup on rest.
+  - question: What do you call a horse that lives next door?
+    answer: A neigh-bor.
+  - question: Why did the music teacher sit on a ladder?
+    answer: She wanted a new perspective on the scales.
+  - question: Why did the cloud stay home?
+    answer: It felt under the weather.
+  - question: What’s a vampire’s favorite fruit?
+    answer: A blood orange.
+  - question: Why did the pencil cross the road?
+    answer: To draw attention.
+  - question: What do you call a bear in the rain?
+    answer: A drizzly bear.
+  - question: Why did the melon have a big wedding?
+    answer: Because it cantaloupe.
+  - question: What do you call a dog that can tell time?
+    answer: A watch-dog.
+  - question: Why did the grape stop in the road?
+    answer: It ran out of juice.
+  - question: What’s a pirate’s favorite letter?
+    answer: You’d think it’s R, but his first love be the C.
+  - question: Why did the computer go to art class?
+    answer: It had too many windows to draw.
+  - question: What did the left eye say to the right eye?
+    answer: Between us, something smells.
+  - question: Why did the bicycle bring a notebook?
+    answer: To take notes on its cycles.
+  - question: Why did the snowman look through a bag of carrots?
+    answer: He was picking his nose.
+  - question: What do you call a unicorn with a cold?
+    answer: Achoo-nicorn.
+  - question: Why did the banana wear sunscreen?
+    answer: It didn’t want to peel.
+  - question: Why did the music book go to therapy?
+    answer: Too many unresolved issues.
+  - question: What do you call a parade of rabbits hopping backwards?
+    answer: A receding hare-line.
+  - question: Why was the belt always calm?
+    answer: It had great buckle control.
+  - question: What do you call an owl that does magic?
+    answer: Hoodini.
+  - question: Why did the watch apply for a job?
+    answer: It had time on its hands.
+  - question: What do you call an overcaffeinated cow?
+    answer: Deja-moo.
+  - question: Why did the music teacher get locked out?
+    answer: She lost the key.
+  - question: Why did the astronaut break up?
+    answer: They needed space.
+  - question: What do you call an ant who fights crime?
+    answer: A vigil-ant.
+  - question: Why did the broom get a medal?
+    answer: For sweeping achievements.
+  - question: Why was the tomato embarrassed?
+    answer: It saw the salad dressing.
+  - question: Why did the chicken go to the séance?
+    answer: To talk to the other side.
+  - question: Why did the bicycle go to therapy?
+    answer: It had too many cycles.
+  - question: What do you call a frog with a broken leg?
+    answer: Unhoppy.
+  - question: Why did the lemon fail the test?
+    answer: It was too sour about the questions.
+  - question: What do you call a sleeping dragon?
+    answer: A snore-cerer.
+  - question: Why did the kiwi go to the doctor?
+    answer: It was feeling a little fuzzy.
+  - question: What do you call a dog who builds houses?
+    answer: A bark-itect.
+  - question: Why did the librarian get kicked off the plane?
+    answer: It was overbooked.
+  - question: What do you call a helpful duck?
+    answer: A quack of all trades.
+  - question: Why did the cookie sit by the computer?
+    answer: To delete crumbs.
+  - question: What do you call a star that likes to read?
+    answer: A book-light.
+  - question: Why did the smartphone sit in the sun?
+    answer: To get more bars.
+  - question: Why did the plant go to school?
+    answer: It wanted to improve its STEM.
+  - question: What do you call a very fast salad?
+    answer: A rocket.
+  - question: Why did the lettuce break up with the tomato?
+    answer: It couldn’t ketchup.
+  - question: Why was the keyboard a great friend?
+    answer: It was always there for support.
+  - question: What do you call a musical insect?
+    answer: A hum-bug.
+  - question: Why did the cup say sorry?
+    answer: It mugged someone.
+  - question: Why did the cow become an astronaut?
+    answer: To see the moooon.
+  - question: What do you call a polite onion?
+    answer: A civil onion.
+  - question: Why did the tomato avoid the fridge?
+    answer: It couldn’t handle the chill.
+  - question: What do you call a deer with good manners?
+    answer: Proper doe-corum.
+  - question: Why did the notebook enroll in art class?
+    answer: It had a lot to draw upon.
+  - question: What do you call a crab that plays baseball?
+    answer: A pinch hitter.
+  - question: Why did the light bulb get good grades?
+    answer: It was brilliant.
+  - question: Why did the tennis ball stop?
+    answer: It was out of bounce.
+  - question: What do you call a careful wolf?
+    answer: A ware-wolf.
+  - question: Why did the orange apply for a job?
+    answer: It wanted to concentrate.
+  - question: Why did the mirror go to school?
+    answer: To reflect on itself.
+  - question: Why did the snowboarder bring a broom?
+    answer: To sweep the slopes.
+  - question: Why did the hairbrush get promoted?
+    answer: It handled tangles well.
+  - question: What do you call a sunburned librarian?
+    answer: Well red.
+  - question: What do you call a boomerang that’s lost?
+    answer: A stick.
+  - question: Why did the ghost go to school?
+    answer: To improve his boo-k smarts.
+  - question: What do you call a fashionable snake?
+    answer: Hiss-ter chic.
+  - question: Why did the peanut call the police?
+    answer: It was a-salted.
+  - question: Why did the gardener bring a light to the garden?
+    answer: To grow light bulbs.
+  - question: Why did the fisherman bring a computer?
+    answer: To improve his net work.
+  - question: What do you call a musical whale?
+    answer: An orca-stra.
+  - question: Why did the grape get promoted?
+    answer: It was raisin the bar.
+  - question: Why did the robot go on a diet?
+    answer: It had too many bytes.
+  - question: Why did the drum take a nap?
+    answer: It was beat.
+  - question: Why did the book ask for help?
+    answer: It had too many issues.
+  - question: Why did the calendar get a job?
+    answer: It had a lot of dates.
+  - question: What do you call a baker who sings?
+    answer: A croissant-o.
+  - question: Why did the web developer go broke?
+    answer: Because he used up all his cache.
+  - question: Why did the cloud get detention?
+    answer: It was too thunder-ous.
+  - question: Why did the carrot win the race?
+    answer: It had a-peeling speed.
+  - question: Why did the zipper start a podcast?
+    answer: It wanted to open up.
+  - question: Why did the sandwich go to the gym?
+    answer: To get breader.
+  - question: Why did the soda can go to school?
+    answer: To get a little can-dor.
+  - question: Why did the battery go to therapy?
+    answer: It needed a recharge in life.
+  - question: Why did the librarian bring a ladder?
+    answer: To reach the higher shelves of knowledge.
+  - question: Why did the note fail music class?
+    answer: It couldn’t stay on key.
+  - question: Why did the salad apply for a job?
+    answer: It wanted to turn over a new leaf.
+  - question: Why did the blanket get promoted?
+    answer: It covered for everyone.
+  - question: Why did the stapler make a great leader?
+    answer: It kept everything together.
+  - question: Why did the painter always win arguments?
+    answer: He had the final brushstroke.
+  - question: Why did the clock apply for a loan?
+    answer: It needed more time.
+  - question: Why did the keyboard sleep well?
+    answer: It was comfortable with its type.
+  - question: Why did the microphone feel important?
+    answer: It was always heard.
+  - question: Why did the backpack get an award?
+    answer: It carried the team.
+  - question: Why did the notebook blush?
+    answer: It was full of sensitive information.
+  - question: Why did the ruler get invited to every party?
+    answer: It was the measure of fun.
+  - question: Why did the calculator cross the road?
+    answer: To sum up the situation.
+  - question: Why did the puzzle piece look happy?
+    answer: It finally fit in.
