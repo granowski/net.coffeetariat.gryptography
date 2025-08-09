@@ -1,13 +1,11 @@
 package net.coffeetariat.cli;
 
-import net.coffeetariat.gryptography.ClientPrivateKeysYaml;
-import net.coffeetariat.gryptography.ClientPublicKeysYaml;
-import net.coffeetariat.gryptography.RSAKeyPairGenerator;
+import net.coffeetariat.gryptography.lib.ClientPrivateKeysYaml;
+import net.coffeetariat.gryptography.lib.ClientPublicKeysYaml;
+import net.coffeetariat.gryptography.lib.RSAKeyPairGenerator;
 
 import java.nio.file.Path;
 import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.util.Optional;
 import java.util.UUID;
 
 public class Program {
@@ -23,10 +21,10 @@ public class Program {
 //
 //    pubk.ifPresent(publicKey -> System.out.println("Public key: " + publicKey));
 
-    var newId = UUID.randomUUID().toString();    net.coffeetariat.gryptography.ClientPublicKeysYaml cpky = new ClientPublicKeysYaml(Path.of("clients-and-public-keys.yaml"));
+    var newId = UUID.randomUUID().toString();    ClientPublicKeysYaml cpky = new ClientPublicKeysYaml(Path.of("clients-and-public-keys.yaml"));
     PrivateKey privKey = cpky.register(newId, RSAKeyPairGenerator.generate());
 
-    net.coffeetariat.gryptography.ClientPrivateKeysYaml cprivky = new  ClientPrivateKeysYaml(Path.of("clients-and-private-keys.yaml"));
+    ClientPrivateKeysYaml cprivky = new  ClientPrivateKeysYaml(Path.of("clients-and-private-keys.yaml"));
     cprivky.load();
     cprivky.register(newId, privKey);
     cprivky.save();

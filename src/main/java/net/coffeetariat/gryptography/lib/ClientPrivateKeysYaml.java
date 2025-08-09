@@ -1,8 +1,7 @@
-package net.coffeetariat.gryptography;
+package net.coffeetariat.gryptography.lib;
 
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.constructor.Constructor;
 
 import java.io.*;
 import java.nio.file.Files;

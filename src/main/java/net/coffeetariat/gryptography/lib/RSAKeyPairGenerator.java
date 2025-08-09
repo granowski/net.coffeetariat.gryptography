@@ -1,4 +1,4 @@
-package net.coffeetariat.gryptography;
+package net.coffeetariat.gryptography.lib;
 
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;

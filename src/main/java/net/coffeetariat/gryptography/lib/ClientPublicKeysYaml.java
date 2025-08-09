@@ -1,4 +1,4 @@
-package net.coffeetariat.gryptography;
+package net.coffeetariat.gryptography.lib;
 
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;

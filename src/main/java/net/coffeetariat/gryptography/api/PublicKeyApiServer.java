@@ -1,10 +1,10 @@
-package net.coffeetariat.api;
+package net.coffeetariat.gryptography.api;
 
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
-import net.coffeetariat.gryptography.ClientPublicKeysYaml;
-import net.coffeetariat.gryptography.RSAKeyPairGenerator;
+import net.coffeetariat.gryptography.lib.ClientPublicKeysYaml;
+import net.coffeetariat.gryptography.lib.RSAKeyPairGenerator;
 
 import java.io.IOException;
 import java.io.OutputStream;
