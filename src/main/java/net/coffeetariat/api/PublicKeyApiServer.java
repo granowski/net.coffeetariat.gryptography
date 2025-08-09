@@ -2,9 +2,9 @@ package net.coffeetariat.api;
 
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
-import net.coffeetariat.gryptography.ClientPrivateKeysYaml;
+import net.coffeetariat.gryptography.ClientPublicKeysYaml;
+import net.coffeetariat.gryptography.RSAKeyPairGenerator;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -13,29 +13,33 @@ import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.security.KeyPair;
+import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.Base64;
 import java.util.Optional;
 
 /**
- * A tiny HTTP API that exposes clients' public keys derived from a YAML store.
+ * A tiny HTTP API that exposes and manages clients' public keys using a YAML store.
  *
  * Endpoints:
  * - GET /health -> 200 OK with "ok"
  * - GET /api/clients/{clientId}/public-key -> 200 OK text/plain (PEM public key)
  *      404 Not Found if client is unknown, 500 on server error
+ * - POST /api/clients/{clientId}/keypair -> 201 Created text/plain (PEM private key)
+ *      Generates a new RSA key pair, stores only the public key, and returns the private key.
  *
  * Server configuration:
  *  - Port can be provided as the first CLI arg (default 8080)
- *  - YAML path is clients-and-keys.yaml in the current working directory
+ *  - YAML path is clients-and-public-keys.yaml in the current working directory
  */
 public class PublicKeyApiServer {
 
   private final HttpServer server;
-  private final ClientPrivateKeysYaml store;
+  private final ClientPublicKeysYaml publicKeysYaml;
 
   public PublicKeyApiServer(int port, Path yamlPath) throws IOException {
-    this.store = new ClientPrivateKeysYaml(yamlPath);
+    this.publicKeysYaml = new ClientPublicKeysYaml(yamlPath);
     this.server = HttpServer.create(new InetSocketAddress(port), 0);
 
     // Basic endpoints
@@ -64,26 +68,37 @@ public class PublicKeyApiServer {
   private void handleClientsRoot(HttpExchange exchange) throws IOException {
     try {
       String method = exchange.getRequestMethod();
-      if (!"GET".equalsIgnoreCase(method)) {
-        respond(exchange, 405, "method not allowed", "text/plain");
+
+      // Preflight support for CORS
+      if ("OPTIONS".equalsIgnoreCase(method)) {
+        respond(exchange, 204, "", "text/plain");
         return;
       }
 
       URI uri = exchange.getRequestURI();
-      String path = uri.getPath(); // e.g., /api/clients/{id}/public-key
+      String path = uri.getPath(); // e.g., /api/clients/{id}/public-key or /new-private-key
 
-      // Expected pattern: /api/clients/{clientId}/public-key
       String[] parts = path.split("/");
-      // ["", "api", "clients", "{id}", "public-key"]
-      if (parts.length == 5 && "public-key".equals(parts[4])) {
+      // ["", "api", "clients", "{id}", "public-key"|"keypair"]
+      if (parts.length == 5) {
         String rawId = parts[3];
         String clientId = URLDecoder.decode(rawId, StandardCharsets.UTF_8);
-        handleGetPublicKey(exchange, clientId);
-        return;
+        if ("GET".equalsIgnoreCase(method) && "public-key".equals(parts[4])) {
+          handleGetPublicKey(exchange, clientId);
+          return;
+        }
+        if ("GET".equalsIgnoreCase(method) && "new-private-key".equals(parts[4])) {
+          handleCreateKeyPair(exchange, clientId);
+          return;
+        }
       }
 
-      // Not found
-      respond(exchange, 404, "not found", "text/plain");
+      // Method not allowed or not found
+      if ("GET".equalsIgnoreCase(method) || "POST".equalsIgnoreCase(method)) {
+        respond(exchange, 404, "not found", "text/plain");
+      } else {
+        respond(exchange, 405, "method not allowed", "text/plain");
+      }
     } catch (Exception e) {
       respond(exchange, 500, "internal server error", "text/plain");
     }
@@ -91,7 +106,7 @@ public class PublicKeyApiServer {
 
   private void handleGetPublicKey(HttpExchange exchange, String clientId) throws IOException {
     addNoCache(exchange.getResponseHeaders());
-    Optional<PublicKey> maybe = store.getPublicKey(clientId);
+    Optional<PublicKey> maybe = publicKeysYaml.getPublicKey(clientId);
     if (maybe.isEmpty()) {
       respond(exchange, 404, "client not found", "text/plain");
       return;
@@ -99,6 +114,19 @@ public class PublicKeyApiServer {
     PublicKey pub = maybe.get();
     String pem = toPem(pub);
     respond(exchange, 200, pem, "text/plain");
+  }
+
+  private void handleCreateKeyPair(HttpExchange exchange, String clientId) throws IOException {
+    addNoCache(exchange.getResponseHeaders());
+
+    try {
+      KeyPair keyPair = RSAKeyPairGenerator.generate();
+      PrivateKey privateKey = publicKeysYaml.register(clientId, keyPair); // stores only public key
+      String pem = toPem(privateKey);
+      respond(exchange, 201, pem, "text/plain");
+    } catch (Exception e) {
+      respond(exchange, 500, "internal server error", "text/plain");
+    }
   }
 
   private static void addNoCache(Headers headers) {
@@ -120,13 +148,26 @@ public class PublicKeyApiServer {
     return sb.toString();
   }
 
+  private static String toPem(PrivateKey privateKey) {
+    byte[] der = privateKey.getEncoded(); // PKCS#8
+    String base64 = Base64.getEncoder().encodeToString(der);
+    StringBuilder sb = new StringBuilder();
+    sb.append("-----BEGIN PRIVATE KEY-----\n");
+    for (int i = 0; i < base64.length(); i += 64) {
+      int end = Math.min(i + 64, base64.length());
+      sb.append(base64, i, end).append('\n');
+    }
+    sb.append("-----END PRIVATE KEY-----\n");
+    return sb.toString();
+  }
+
   private static void respond(HttpExchange exchange, int status, String body, String contentType) throws IOException {
     byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
     Headers headers = exchange.getResponseHeaders();
     headers.set("Content-Type", contentType + "; charset=utf-8");
-    // Basic CORS for GET
+    // Basic CORS for GET and POST
     headers.set("Access-Control-Allow-Origin", "*");
-    headers.set("Access-Control-Allow-Methods", "GET, OPTIONS");
+    headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     headers.set("Access-Control-Allow-Headers", "Content-Type");
 
     if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) {
@@ -146,7 +187,7 @@ public class PublicKeyApiServer {
     if (args != null && args.length > 0) {
       try { port = Integer.parseInt(args[0]); } catch (NumberFormatException ignored) {}
     }
-    Path yamlPath = Path.of("clients-and-keys.yaml");
+    Path yamlPath = Path.of("clients-and-public-keys.yaml");
     PublicKeyApiServer s = new PublicKeyApiServer(port, yamlPath);
     s.start();
   }
