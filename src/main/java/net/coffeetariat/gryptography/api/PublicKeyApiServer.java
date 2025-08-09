@@ -19,6 +19,9 @@ import java.security.PublicKey;
 import java.util.Base64;
 import java.util.Optional;
 
+// todo -> create GET endpoint that will give a challenge to the client.
+// todo -> create a POST endpoint that will process a challenge from the client.
+
 /**
  * A tiny HTTP API that exposes and manages clients' public keys using a YAML store.
  *
