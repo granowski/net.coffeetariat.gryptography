@@ -3,6 +3,8 @@ package net.coffeetariat.gryptography.api;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+import net.coffeetariat.gryptography.auth.ChallengeInquiry;
+import net.coffeetariat.gryptography.auth.HostOriginBoundAuthorization;
 import net.coffeetariat.gryptography.lib.ClientPublicKeysYaml;
 import net.coffeetariat.gryptography.lib.RSAKeyPairGenerator;
 
@@ -19,7 +21,6 @@ import java.security.PublicKey;
 import java.util.Base64;
 import java.util.Optional;
 
-// todo -> create GET endpoint that will give a challenge to the client.
 // todo -> create a POST endpoint that will process a challenge from the client.
 
 /**
@@ -48,6 +49,7 @@ public class PublicKeyApiServer {
     // Basic endpoints
     server.createContext("/health", this::handleHealth);
     server.createContext("/api/clients", this::handleClientsRoot);
+    server.createContext("/api/challenge", this::handleChallenge);
 
     // Use a small thread pool
     server.setExecutor(java.util.concurrent.Executors.newCachedThreadPool());
@@ -161,6 +163,121 @@ public class PublicKeyApiServer {
       sb.append(base64, i, end).append('\n');
     }
     sb.append("-----END PRIVATE KEY-----\n");
+    return sb.toString();
+  }
+
+  private void handleChallenge(HttpExchange exchange) throws IOException {
+    String method = exchange.getRequestMethod();
+    if ("OPTIONS".equalsIgnoreCase(method)) {
+      respond(exchange, 204, "", "text/plain");
+      return;
+    }
+    if (!"GET".equalsIgnoreCase(method)) {
+      respond(exchange, 405, "method not allowed", "text/plain");
+      return;
+    }
+    addNoCache(exchange.getResponseHeaders());
+
+    // Parse query param clientId
+    URI uri = exchange.getRequestURI();
+    String query = uri.getQuery();
+    String clientId = getQueryParam(query, "clientId");
+    if (clientId == null || clientId.isBlank()) {
+      respond(exchange, 400, "missing required query parameter: clientId", "text/plain");
+      return;
+    }
+
+    try {
+      ChallengeInquiry inquiry = HostOriginBoundAuthorization.createChallenge(clientId, publicKeysYaml);
+
+      // Content negotiation for Accept header
+      Headers reqHeaders = exchange.getRequestHeaders();
+      String accept = Optional.ofNullable(reqHeaders.getFirst("Accept")).orElse("*/*").toLowerCase();
+
+      String body;
+      String contentType;
+      if (accept.contains("application/yaml") || accept.contains("text/yaml") || accept.contains("application/x-yaml")) {
+        body = toYaml(inquiry);
+        contentType = "application/yaml";
+      } else {
+        body = toJson(inquiry);
+        contentType = "application/json";
+      }
+
+      respond(exchange, 200, body, contentType);
+    } catch (IllegalArgumentException e) {
+      respond(exchange, 404, "client not found", "text/plain");
+    } catch (Exception e) {
+      respond(exchange, 500, "internal server error", "text/plain");
+    }
+  }
+
+  // todo -> review this code since it's very primitive looking.
+  private static String getQueryParam(String query, String name) {
+    if (query == null || query.isEmpty()) return null;
+    String[] pairs = query.split("&");
+    for (String p : pairs) {
+      int idx = p.indexOf('=');
+      String key = idx >= 0 ? p.substring(0, idx) : p;
+      String val = idx >= 0 ? p.substring(idx + 1) : "";
+      if (name.equals(key)) {
+        try {
+          return URLDecoder.decode(val, StandardCharsets.UTF_8);
+        } catch (Exception ignored) {
+          return val;
+        }
+      }
+    }
+    return null;
+  }
+
+  // todo -> this is AI generated crap I don't want...
+  // It makes more sense to replace this with a simple serialization lib like Jackson.
+  // For now I'll let it stand though because I prefer simple solutions.
+  private static String toJson(ChallengeInquiry ci) {
+    // Minimal JSON serialization without external libs; ensure basic escaping for quotes and backslashes
+    String sess = jsonEscape(ci.sessionId);
+    String inq = jsonEscape(ci.inquiry);
+    return "{\"sessionId\":\"" + sess + "\",\"inquiry\":\"" + inq + "\"}";
+  }
+
+  // Minimal YAML serialization for ChallengeInquiry supporting requested mime type
+  private static String toYaml(ChallengeInquiry ci) {
+    String sess = yamlEscape(ci.sessionId);
+    String inq = yamlEscape(ci.inquiry);
+    return "sessionId: '" + sess + "'\n" +
+           "inquiry: '" + inq + "'\n";
+  }
+
+  private static String yamlEscape(String s) {
+    if (s == null) return "";
+    // Single-quote style in YAML: escape single quotes by doubling them
+    return s.replace("'", "''");
+  }
+
+  // todo -> Okay this is a bit much... we're gonna need Jackson instead...
+  // But for later...
+  private static String jsonEscape(String s) {
+    if (s == null) return "";
+    StringBuilder sb = new StringBuilder(s.length() + 16);
+    for (int i = 0; i < s.length(); i++) {
+      char c = s.charAt(i);
+      switch (c) {
+        case '"': sb.append("\\\""); break;
+        case '\\': sb.append("\\\\"); break;
+        case '\b': sb.append("\\b"); break;
+        case '\f': sb.append("\\f"); break;
+        case '\n': sb.append("\\n"); break;
+        case '\r': sb.append("\\r"); break;
+        case '\t': sb.append("\\t"); break;
+        default:
+          if (c < 0x20) {
+            sb.append(String.format("\\u%04x", (int) c));
+          } else {
+            sb.append(c);
+          }
+      }
+    }
     return sb.toString();
   }
 
