@@ -30,19 +30,31 @@ public class Program {
 //    cprivky.load();
 //    cprivky.register(newId, privKey);
 //    cprivky.save();
-    for (int i = 0; i < 7; i++) {
-      String randomClientId = UUID.randomUUID().toString();
-      ClientPublicKeysYaml cpky = new ClientPublicKeysYaml(Path.of("temp-pub-keys.yaml"));
-      cpky.register(randomClientId, RSAKeyPairGenerator.generate().getPublic());
 
-      ChallengeInquiry challenge = HostOriginBoundAuthorization.createChallenge(randomClientId, cpky);
+//    for (int i = 0; i < 7; i++) {
+//      String randomClientId = UUID.randomUUID().toString();
+//      ClientPublicKeysYaml cpky = new ClientPublicKeysYaml(Path.of("temp-pub-keys.yaml"));
+//      cpky.register(randomClientId, RSAKeyPairGenerator.generate().getPublic());
+//
+//      ChallengeInquiry challenge = HostOriginBoundAuthorization.createChallenge(randomClientId, cpky);
+//
+//      challenge.debugPrint();
+//    }
+//
+//    var result = HostOriginBoundAuthorization.listSessionsAndClientIds();
+//    for  (var entry : result.entrySet()) {
+//      System.out.println(entry.getKey() + " -> " + entry.getValue());
+//    }
 
-      challenge.debugPrint();
-    }
+    var tok = HostOriginBoundAuthorization.generateJwtToken(
+        RSAKeyPairGenerator.generate().getPrivate(),
+        "Derrick Granowski",
+        "grypto-api-v0.01",
+        "everyone",
+        600,
+        null
+    );
 
-    var result = HostOriginBoundAuthorization.listSessionsAndClientIds();
-    for  (var entry : result.entrySet()) {
-      System.out.println(entry.getKey() + " -> " + entry.getValue());
-    }
+    System.out.println(tok.toString());
   }
 }
