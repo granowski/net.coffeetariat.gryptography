@@ -7,6 +7,7 @@ import net.coffeetariat.gryptography.auth.ChallengeInquiry;
 import net.coffeetariat.gryptography.auth.HostOriginBoundAuthorization;
 import net.coffeetariat.gryptography.lib.ClientPublicKeysYaml;
 import net.coffeetariat.gryptography.lib.RSAKeyPairGenerator;
+import net.coffeetariat.gryptography.lib.Utilities;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -18,7 +19,6 @@ import java.nio.file.Path;
 import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.util.Base64;
 import java.util.Optional;
 
 // todo -> create a POST endpoint that will process a challenge from the client.
@@ -117,7 +117,7 @@ public class PublicKeyApiServer {
       return;
     }
     PublicKey pub = maybe.get();
-    String pem = toPem(pub);
+    String pem = Utilities.toPem(pub);
     respond(exchange, 200, pem, "text/plain");
   }
 
@@ -127,7 +127,7 @@ public class PublicKeyApiServer {
     try {
       KeyPair keyPair = RSAKeyPairGenerator.generate();
       PrivateKey privateKey = publicKeysYaml.register(clientId, keyPair); // stores only public key
-      String pem = toPem(privateKey);
+      String pem = Utilities.toPem(privateKey);
       respond(exchange, 201, pem, "text/plain");
     } catch (Exception e) {
       respond(exchange, 500, "internal server error", "text/plain");
@@ -137,33 +137,6 @@ public class PublicKeyApiServer {
   private static void addNoCache(Headers headers) {
     headers.add("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
     headers.add("Pragma", "no-cache");
-  }
-
-  private static String toPem(PublicKey publicKey) {
-    byte[] der = publicKey.getEncoded(); // X.509 SubjectPublicKeyInfo
-    String base64 = Base64.getEncoder().encodeToString(der);
-    StringBuilder sb = new StringBuilder();
-    sb.append("-----BEGIN PUBLIC KEY-----\n");
-    // Wrap at 64 chars per line
-    for (int i = 0; i < base64.length(); i += 64) {
-      int end = Math.min(i + 64, base64.length());
-      sb.append(base64, i, end).append('\n');
-    }
-    sb.append("-----END PUBLIC KEY-----\n");
-    return sb.toString();
-  }
-
-  private static String toPem(PrivateKey privateKey) {
-    byte[] der = privateKey.getEncoded(); // PKCS#8
-    String base64 = Base64.getEncoder().encodeToString(der);
-    StringBuilder sb = new StringBuilder();
-    sb.append("-----BEGIN PRIVATE KEY-----\n");
-    for (int i = 0; i < base64.length(); i += 64) {
-      int end = Math.min(i + 64, base64.length());
-      sb.append(base64, i, end).append('\n');
-    }
-    sb.append("-----END PRIVATE KEY-----\n");
-    return sb.toString();
   }
 
   private void handleChallenge(HttpExchange exchange) throws IOException {
@@ -197,10 +170,10 @@ public class PublicKeyApiServer {
       String body;
       String contentType;
       if (accept.contains("application/yaml") || accept.contains("text/yaml") || accept.contains("application/x-yaml")) {
-        body = toYaml(inquiry);
+        body = inquiry.toYaml();
         contentType = "application/yaml";
       } else {
-        body = toJson(inquiry);
+        body = inquiry.toJson();
         contentType = "application/json";
       }
 
@@ -229,56 +202,6 @@ public class PublicKeyApiServer {
       }
     }
     return null;
-  }
-
-  // todo -> this is AI generated crap I don't want...
-  // It makes more sense to replace this with a simple serialization lib like Jackson.
-  // For now I'll let it stand though because I prefer simple solutions.
-  private static String toJson(ChallengeInquiry ci) {
-    // Minimal JSON serialization without external libs; ensure basic escaping for quotes and backslashes
-    String sess = jsonEscape(ci.sessionId);
-    String inq = jsonEscape(ci.inquiry);
-    return "{\"sessionId\":\"" + sess + "\",\"inquiry\":\"" + inq + "\"}";
-  }
-
-  // Minimal YAML serialization for ChallengeInquiry supporting requested mime type
-  private static String toYaml(ChallengeInquiry ci) {
-    String sess = yamlEscape(ci.sessionId);
-    String inq = yamlEscape(ci.inquiry);
-    return "sessionId: '" + sess + "'\n" +
-           "inquiry: '" + inq + "'\n";
-  }
-
-  private static String yamlEscape(String s) {
-    if (s == null) return "";
-    // Single-quote style in YAML: escape single quotes by doubling them
-    return s.replace("'", "''");
-  }
-
-  // todo -> Okay this is a bit much... we're gonna need Jackson instead...
-  // But for later...
-  private static String jsonEscape(String s) {
-    if (s == null) return "";
-    StringBuilder sb = new StringBuilder(s.length() + 16);
-    for (int i = 0; i < s.length(); i++) {
-      char c = s.charAt(i);
-      switch (c) {
-        case '"': sb.append("\\\""); break;
-        case '\\': sb.append("\\\\"); break;
-        case '\b': sb.append("\\b"); break;
-        case '\f': sb.append("\\f"); break;
-        case '\n': sb.append("\\n"); break;
-        case '\r': sb.append("\\r"); break;
-        case '\t': sb.append("\\t"); break;
-        default:
-          if (c < 0x20) {
-            sb.append(String.format("\\u%04x", (int) c));
-          } else {
-            sb.append(c);
-          }
-      }
-    }
-    return sb.toString();
   }
 
   private static void respond(HttpExchange exchange, int status, String body, String contentType) throws IOException {
