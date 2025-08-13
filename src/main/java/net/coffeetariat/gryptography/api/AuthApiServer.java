@@ -8,6 +8,7 @@ import net.coffeetariat.gryptography.auth.HostOriginBoundAuthorization;
 import net.coffeetariat.gryptography.lib.ClientPublicKeysYaml;
 import net.coffeetariat.gryptography.lib.RSAKeyPairGenerator;
 import net.coffeetariat.gryptography.lib.Utilities;
+import net.coffeetariat.gryptography.api.MediaTypes;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -39,6 +40,8 @@ import java.util.Optional;
  */
 public class AuthApiServer {
 
+  private static final String TEXT_PLAIN = MediaTypes.TEXT_PLAIN.value();
+
   private final HttpServer server;
   private final ClientPublicKeysYaml publicKeysYaml;
 
@@ -63,11 +66,11 @@ public class AuthApiServer {
 
   private void handleHealth(HttpExchange exchange) throws IOException {
     if (!"GET".equalsIgnoreCase(exchange.getRequestMethod())) {
-      respond(exchange, 405, "method not allowed", "text/plain");
+      respond(exchange, 405, "method not allowed", MediaTypes.TEXT_PLAIN.value());
       return;
     }
     addNoCache(exchange.getResponseHeaders());
-    respond(exchange, 200, "ok", "text/plain");
+    respond(exchange, 200, "ok", MediaTypes.TEXT_PLAIN.value());
   }
 
   private void handleClientsRoot(HttpExchange exchange) throws IOException {
@@ -76,7 +79,7 @@ public class AuthApiServer {
 
       // Preflight support for CORS
       if ("OPTIONS".equalsIgnoreCase(method)) {
-        respond(exchange, 204, "", "text/plain");
+        respond(exchange, 204, "", MediaTypes.TEXT_PLAIN.value());
         return;
       }
 
@@ -100,12 +103,12 @@ public class AuthApiServer {
 
       // Method not allowed or not found
       if ("GET".equalsIgnoreCase(method) || "POST".equalsIgnoreCase(method)) {
-        respond(exchange, 404, "not found", "text/plain");
+        respond(exchange, 404, "not found", MediaTypes.TEXT_PLAIN.value());
       } else {
-        respond(exchange, 405, "method not allowed", "text/plain");
+        respond(exchange, 405, "method not allowed", MediaTypes.TEXT_PLAIN.value());
       }
     } catch (Exception e) {
-      respond(exchange, 500, "internal server error", "text/plain");
+      respond(exchange, 500, "internal server error", MediaTypes.TEXT_PLAIN.value());
     }
   }
 
@@ -113,12 +116,12 @@ public class AuthApiServer {
     addNoCache(exchange.getResponseHeaders());
     Optional<PublicKey> maybe = publicKeysYaml.getPublicKey(clientId);
     if (maybe.isEmpty()) {
-      respond(exchange, 404, "client not found", "text/plain");
+      respond(exchange, 404, "client not found", MediaTypes.TEXT_PLAIN.value());
       return;
     }
     PublicKey pub = maybe.get();
     String pem = Utilities.toPem(pub);
-    respond(exchange, 200, pem, "text/plain");
+    respond(exchange, 200, pem, MediaTypes.TEXT_PLAIN.value());
   }
 
   private void handleCreateKeyPair(HttpExchange exchange, String clientId) throws IOException {
@@ -128,9 +131,9 @@ public class AuthApiServer {
       KeyPair keyPair = RSAKeyPairGenerator.generate();
       PrivateKey privateKey = publicKeysYaml.register(clientId, keyPair); // stores only public key
       String pem = Utilities.toPem(privateKey);
-      respond(exchange, 201, pem, "text/plain");
+      respond(exchange, 201, pem, MediaTypes.TEXT_PLAIN.value());
     } catch (Exception e) {
-      respond(exchange, 500, "internal server error", "text/plain");
+      respond(exchange, 500, "internal server error", MediaTypes.TEXT_PLAIN.value());
     }
   }
 
@@ -142,11 +145,11 @@ public class AuthApiServer {
   private void handleChallenge(HttpExchange exchange) throws IOException {
     String method = exchange.getRequestMethod();
     if ("OPTIONS".equalsIgnoreCase(method)) {
-      respond(exchange, 204, "", "text/plain");
+      respond(exchange, 204, "", MediaTypes.TEXT_PLAIN.value());
       return;
     }
     if (!"GET".equalsIgnoreCase(method)) {
-      respond(exchange, 405, "method not allowed", "text/plain");
+      respond(exchange, 405, "method not allowed", MediaTypes.TEXT_PLAIN.value());
       return;
     }
     addNoCache(exchange.getResponseHeaders());
@@ -156,7 +159,7 @@ public class AuthApiServer {
     String query = uri.getQuery();
     String clientId = getQueryParam(query, "clientId");
     if (clientId == null || clientId.isBlank()) {
-      respond(exchange, 400, "missing required query parameter: clientId", "text/plain");
+      respond(exchange, 400, "missing required query parameter: clientId", MediaTypes.TEXT_PLAIN.value());
       return;
     }
 
@@ -169,19 +172,19 @@ public class AuthApiServer {
 
       String body;
       String contentType;
-      if (accept.contains("application/yaml") || accept.contains("text/yaml") || accept.contains("application/x-yaml")) {
+      if (accept.contains(MediaTypes.APPLICATION_YAML.value()) || accept.contains(MediaTypes.TEXT_YAML.value()) || accept.contains(MediaTypes.APPLICATION_X_YAML.value())) {
         body = inquiry.toYaml();
-        contentType = "application/yaml";
+        contentType = MediaTypes.APPLICATION_YAML.value();
       } else {
         body = inquiry.toJson();
-        contentType = "application/json";
+        contentType = MediaTypes.APPLICATION_JSON.value();
       }
 
       respond(exchange, 200, body, contentType);
     } catch (IllegalArgumentException e) {
-      respond(exchange, 404, "client not found", "text/plain");
+      respond(exchange, 404, "client not found", MediaTypes.TEXT_PLAIN.value());
     } catch (Exception e) {
-      respond(exchange, 500, "internal server error", "text/plain");
+      respond(exchange, 500, "internal server error", MediaTypes.TEXT_PLAIN.value());
     }
   }
 
