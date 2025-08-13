@@ -39,7 +39,7 @@
                             <createDependencyReducedPom>true</createDependencyReducedPom>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>net.coffeetariat.gryptography.api.PublicKeyApiServer</mainClass>
+                                    <mainClass>net.coffeetariat.gryptography.api.AuthApiServer</mainClass>
                                 </transformer>
                             </transformers>
                         </configuration>

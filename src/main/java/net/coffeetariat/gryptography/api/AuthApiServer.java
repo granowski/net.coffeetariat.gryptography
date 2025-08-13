@@ -37,12 +37,12 @@ import java.util.Optional;
  *  - Port can be provided as the first CLI arg (default 8080)
  *  - YAML path is clients-and-public-keys.yaml in the current working directory
  */
-public class PublicKeyApiServer {
+public class AuthApiServer {
 
   private final HttpServer server;
   private final ClientPublicKeysYaml publicKeysYaml;
 
-  public PublicKeyApiServer(int port, Path yamlPath) throws IOException {
+  public AuthApiServer(int port, Path yamlPath) throws IOException {
     this.publicKeysYaml = new ClientPublicKeysYaml(yamlPath);
     this.server = HttpServer.create(new InetSocketAddress(port), 0);
 
@@ -58,7 +58,7 @@ public class PublicKeyApiServer {
   public void start() {
     server.start();
     Runtime.getRuntime().addShutdownHook(new Thread(() -> server.stop(0)));
-    System.out.println("PublicKeyApiServer started on http://localhost:" + server.getAddress().getPort());
+    System.out.println("AuthApiServer started on http://localhost:" + server.getAddress().getPort());
   }
 
   private void handleHealth(HttpExchange exchange) throws IOException {
@@ -231,7 +231,7 @@ public class PublicKeyApiServer {
       try { port = Integer.parseInt(args[0]); } catch (NumberFormatException ignored) {}
     }
     Path yamlPath = Path.of("clients-and-public-keys.yaml");
-    PublicKeyApiServer s = new PublicKeyApiServer(port, yamlPath);
+    AuthApiServer s = new AuthApiServer(port, yamlPath);
     s.start();
   }
 }
