@@ -59,21 +59,24 @@ public class Program {
 
     var answerData = "rawr";
 
-    var sig = HostOriginBoundAuthorization.createSignatureForText("123", answerData, pubkeys);
+    var sig = HostOriginBoundAuthorization.createSignatureForText(testpair.getPrivate(), answerData);
 
     var ans = new ChallengeAnswer(chal.sessionId, answerData, sig);
 
-    HostOriginBoundAuthorization.verifySignedText(answerData, sig, pubkeys.getPublicKey("123").get());
+    var verified = HostOriginBoundAuthorization.verifySignedText(answerData, sig, pubkeys.getPublicKey("123").get());
 
-    var tok = JWTToken.generate(
-        RSAKeyPairGenerator.generate().getPrivate(),
-        "Derrick Granowski",
-        "grypto-api-v0.01",
-        "everyone",
-        600,
-        null
-    );
+    if (verified) {
+      var tok = JWTToken.generate(
+          RSAKeyPairGenerator.generate().getPrivate(),
+          "123",
+          "grypto-api-v0.01",
+          "everyone",
+          600,
+          null
+      );
+      System.out.println(tok);
+    }
 
-    System.out.println(tok);
+
   }
 }

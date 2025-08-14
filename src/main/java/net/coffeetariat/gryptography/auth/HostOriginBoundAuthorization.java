@@ -225,35 +225,37 @@ public class HostOriginBoundAuthorization {
   public static Map<String, String> listSessionsAndClientIds() {
     return new HashMap<>(SESSION_TO_CLIENT);
   }
-
-  /**
-   * Creates a "signature" string for the provided text using the client's public key.
-   *
-   * <p>Important: In standard cryptography, a signature is created with a private key and
-   * verified with a public key (e.g., via RSASSA). This helper instead uses the client's
-   * public key to produce a Base64-encoded RSA ciphertext of the input text, which can serve
-   * as a public-key-encrypted token in flows where the counterpart will decrypt it with the
-   * private key. It does not produce an RSASSA signature.</p>
-   *
-   * @param clientId the client's identifier whose public key will be used
-   * @param text the plaintext to transform
-   * @param publicKeysYaml the store used to resolve the client's public key
-   * @return Base64-encoded RSA ciphertext of the text using the client's public key
-   * @throws IllegalArgumentException if the clientId is unknown or the key cannot be found
-   * @throws RuntimeException if the encryption fails
-   */
-  public static String createSignatureForText(String clientId,
-                                              String text,
-                                              ClientPublicKeysYaml publicKeysYaml) {
-    Objects.requireNonNull(clientId, "clientId");
-    Objects.requireNonNull(text, "text");
-    Objects.requireNonNull(publicKeysYaml, "publicKeysYaml");
-
-    PublicKey publicKey = publicKeysYaml.getPublicKey(clientId)
-        .orElseThrow(() -> new IllegalArgumentException("Unknown clientId or public key not found: " + clientId));
-
-    return encryptToBase64(text, publicKey);
-  }
+//
+//  /**
+//   * Creates a "signature" string for the provided text using the client's public key.
+//   *
+//   * <p>Important: In standard cryptography, a signature is created with a private key and
+//   * verified with a public key (e.g., via RSASSA). This helper instead uses the client's
+//   * public key to produce a Base64-encoded RSA ciphertext of the input text, which can serve
+//   * as a public-key-encrypted token in flows where the counterpart will decrypt it with the
+//   * private key. It does not produce an RSASSA signature.</p>
+//   *
+//   * @param clientId the client's identifier whose public key will be used
+//   * @param text the plaintext to transform
+//   * @param publicKeysYaml the store used to resolve the client's public key
+//   * @return Base64-encoded RSA ciphertext of the text using the client's public key
+//   * @throws IllegalArgumentException if the clientId is unknown or the key cannot be found
+//   * @throws RuntimeException if the encryption fails
+//   */
+//  public static String createSignatureForText(String clientId,
+//                                              String text,
+//                                              ClientPublicKeysYaml publicKeysYaml) {
+//    Objects.requireNonNull(clientId, "clientId");
+//    Objects.requireNonNull(text, "text");
+//    Objects.requireNonNull(publicKeysYaml, "publicKeysYaml");
+//
+//    PublicKey publicKey = publicKeysYaml.getPublicKey(clientId)
+//        .orElseThrow(() -> new IllegalArgumentException("Unknown clientId or public key not found: " + clientId));
+//
+////    return encryptToBase64(text, publicKey);
+//    // todo -> the create signature wasn't right.
+//    return "";
+//  }
 
   // todo -> Need to verify that this works. Looks right...
   /**
@@ -305,6 +307,23 @@ public class HostOriginBoundAuthorization {
     }
   }
 
+  /**
+   * Creates a Base64-encoded RSASSA-PKCS1-v1_5 (SHA256withRSA) signature over the provided text.
+   * The text is encoded as UTF-8 prior to signing.
+   *
+   * @param privateKey the RSA private key to sign with
+   * @param text the plaintext to sign (UTF-8)
+   * @return the signature bytes encoded as Base64
+   * @throws NullPointerException if any argument is null
+   * @throws RuntimeException if signing fails for any reason
+   */
+  public static String createSignatureForText(PrivateKey privateKey, String text) {
+    Objects.requireNonNull(privateKey, "privateKey");
+    Objects.requireNonNull(text, "text");
+    byte[] data = text.getBytes(StandardCharsets.UTF_8);
+    byte[] sig = signRs256(privateKey, data);
+    return Base64.getEncoder().encodeToString(sig);
+  }
 
   private static byte[] signRs256(PrivateKey privateKey, byte[] data) {
     try {
