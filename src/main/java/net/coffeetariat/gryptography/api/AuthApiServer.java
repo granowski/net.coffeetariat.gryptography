@@ -53,9 +53,73 @@ public class AuthApiServer {
     server.createContext("/health", this::handleHealth);
     server.createContext("/api/clients", this::handleClientsRoot);
     server.createContext("/api/challenge", this::handleChallenge);
+    server.createContext("/", exchange -> {
+      String method = exchange.getRequestMethod();
+      if ("OPTIONS".equalsIgnoreCase(method)) {
+        respond(exchange, 204, "", MediaTypes.TEXT_PLAIN.value());
+        return;
+      }
+      if (!"GET".equalsIgnoreCase(method)) {
+        respond(exchange, 405, "method not allowed", MediaTypes.TEXT_PLAIN.value());
+        return;
+      }
+
+      String path = exchange.getRequestURI().getPath();
+      if (path == null || "/".equals(path)) {
+        path = "/index.html"; // default document
+      }
+      // Normalize and prevent path traversal
+      if (path.contains("..")) {
+        respond(exchange, 400, "bad request", MediaTypes.TEXT_PLAIN.value());
+        return;
+      }
+
+      // Serve from classpath under /public
+      String resourcePath = "public" + path; // e.g., public/index.html
+      try (var in = Thread.currentThread().getContextClassLoader().getResourceAsStream(resourcePath)) {
+        if (in == null) {
+          respond(exchange, 404, "not found", MediaTypes.TEXT_PLAIN.value());
+          return;
+        }
+        byte[] bytes = in.readAllBytes();
+
+        // Pick content type
+        String contentType = contentTypeFor(path);
+
+        // Headers and caching policy (reusing your style)
+        Headers headers = exchange.getResponseHeaders();
+        headers.set("Content-Type", contentType + "; charset=utf-8");
+        headers.set("Access-Control-Allow-Origin", "*");
+        headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+        headers.set("Access-Control-Allow-Headers", "Content-Type");
+        // For HTML, avoid caching while developing; adjust for prod as needed
+        addNoCache(headers);
+
+        exchange.sendResponseHeaders(200, bytes.length);
+        try (var os = exchange.getResponseBody()) {
+          os.write(bytes);
+        }
+      } catch (IOException e) {
+        respond(exchange, 500, "internal server error", MediaTypes.TEXT_PLAIN.value());
+      }
+    });
 
     // Use a small thread pool
     server.setExecutor(java.util.concurrent.Executors.newCachedThreadPool());
+  }
+
+  private static String contentTypeFor(String path) {
+    String p = path.toLowerCase();
+    if (p.endsWith(".html") || p.endsWith(".htm")) return "text/html";
+    if (p.endsWith(".css")) return "text/css";
+    if (p.endsWith(".js")) return "application/javascript";
+    if (p.endsWith(".json")) return "application/json";
+    if (p.endsWith(".svg")) return "image/svg+xml";
+    if (p.endsWith(".png")) return "image/png";
+    if (p.endsWith(".jpg") || p.endsWith(".jpeg")) return "image/jpeg";
+    if (p.endsWith(".gif")) return "image/gif";
+    if (p.endsWith(".ico")) return "image/x-icon";
+    return "application/octet-stream";
   }
 
   public void start() {
