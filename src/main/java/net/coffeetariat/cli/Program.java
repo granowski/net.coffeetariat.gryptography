@@ -1,7 +1,9 @@
 package net.coffeetariat.cli;
 
+import net.coffeetariat.gryptography.auth.ChallengeAnswer;
 import net.coffeetariat.gryptography.auth.ChallengeInquiry;
 import net.coffeetariat.gryptography.auth.HostOriginBoundAuthorization;
+import net.coffeetariat.gryptography.auth.JWTToken;
 import net.coffeetariat.gryptography.lib.ClientPrivateKeysYaml;
 import net.coffeetariat.gryptography.lib.ClientPublicKeysYaml;
 import net.coffeetariat.gryptography.lib.RSAKeyPairGenerator;
@@ -46,7 +48,24 @@ public class Program {
 //      System.out.println(entry.getKey() + " -> " + entry.getValue());
 //    }
 
-    var tok = HostOriginBoundAuthorization.generateJwtToken(
+    var testpair = RSAKeyPairGenerator.generate();
+
+    var pubkeys = new ClientPublicKeysYaml(Path.of("testing.public-keys.yaml"));
+    pubkeys.register("123", testpair.getPublic());
+
+    var chal = HostOriginBoundAuthorization.createChallenge(
+        "123", pubkeys
+    );
+
+    var answerData = "rawr";
+
+    var sig = HostOriginBoundAuthorization.createSignatureForText("123", answerData, pubkeys);
+
+    var ans = new ChallengeAnswer(chal.sessionId, answerData, sig);
+
+    HostOriginBoundAuthorization.verifySignedText(answerData, sig, pubkeys.getPublicKey("123").get());
+
+    var tok = JWTToken.generate(
         RSAKeyPairGenerator.generate().getPrivate(),
         "Derrick Granowski",
         "grypto-api-v0.01",
@@ -55,6 +74,6 @@ public class Program {
         null
     );
 
-    System.out.println(tok.toString());
+    System.out.println(tok);
   }
 }

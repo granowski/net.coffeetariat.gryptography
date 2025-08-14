@@ -19,6 +19,42 @@ public class HostOriginBoundAuthorization {
   private static final Map<String, String> SESSION_TO_CLIENT = new ConcurrentHashMap<>();
 
   /**
+   * Given a ChallengeAnswer, looks up the associated clientId from the in-memory
+   * session store, fetches that client's PublicKey from the provided ClientPublicKeysYaml,
+   * and uses the public key to decrypt the Base64-encoded 'answer' contained in the
+   * ChallengeAnswer.
+   *
+   * Note: This assumes the 'answer' was produced by the client using its private key in a
+   * manner compatible with RSA/ECB/PKCS1Padding, allowing decryption with the public key.
+   *
+   * @param challengeAnswer the answer object containing sessionId and Base64-encoded answer
+   * @param publicKeysYaml the public key store for resolving the client's public key
+   * @return the decrypted plaintext answer as a UTF-8 string
+   * @throws IllegalArgumentException if the sessionId is unknown or the client's public key is missing
+   * @throws RuntimeException if decryption fails
+   */
+  public static String decryptAnswerWithClientPublicKey(ChallengeAnswer challengeAnswer,
+                                                        ClientPublicKeysYaml publicKeysYaml) {
+    Objects.requireNonNull(challengeAnswer, "challengeAnswer");
+    Objects.requireNonNull(publicKeysYaml, "publicKeysYaml");
+
+    String sessionId = challengeAnswer.sessionId;
+    if (sessionId == null) {
+      throw new IllegalArgumentException("ChallengeAnswer.sessionId is null");
+    }
+
+    String clientId = getClientIdForSession(sessionId);
+    if (clientId == null) {
+      throw new IllegalArgumentException("Unknown or expired sessionId: " + sessionId);
+    }
+
+    PublicKey publicKey = publicKeysYaml.getPublicKey(clientId)
+        .orElseThrow(() -> new IllegalArgumentException("Unknown clientId or public key not found: " + clientId));
+
+    return decryptWithPublicKeyToText(challengeAnswer.answer, publicKey);
+  }
+
+  /**
    * Creates a challenge for the given client by selecting a random question from the
    * silly-qna-jokes.yaml resource, encrypting it with the client's public key, and
    * returning it as a ChallengeInquiry. Also generates a random sessionId and stores
@@ -158,12 +194,65 @@ public class HostOriginBoundAuthorization {
   }
 
   /**
+   * Decrypts a Base64-encoded RSA ciphertext using a public key. This is only
+   * applicable when the counterpart operation used the private key (e.g., raw
+   * RSA with PKCS#1 padding), which is not the same as an RSASSA signature.
+   *
+   * For safety and interoperability, we try PKCS1 padding first, which is the
+   * only practical mode for public-key decryption. OAEP is not applicable for
+   * public-key decryption because OAEP is defined for public-key encryption
+   * and private-key decryption.
+   */
+  public static String decryptWithPublicKeyToText(String encryptedText, PublicKey publicKey) {
+    Objects.requireNonNull(encryptedText, "encryptedText");
+    Objects.requireNonNull(publicKey, "publicKey");
+    byte[] ciphertext = Base64.getDecoder().decode(encryptedText);
+    try {
+      Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+      cipher.init(Cipher.DECRYPT_MODE, publicKey);
+      byte[] pt = cipher.doFinal(ciphertext);
+      return new String(pt, StandardCharsets.UTF_8);
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to decrypt text with public key (PKCS1)", e);
+    }
+  }
+
+  /**
    * Returns a defensive copy of the current sessionId -> clientId mappings.
    * Because keys and values are Strings (immutable), copying the entries
    * constitutes a deep copy for practical purposes.
    */
   public static Map<String, String> listSessionsAndClientIds() {
     return new HashMap<>(SESSION_TO_CLIENT);
+  }
+
+  /**
+   * Creates a "signature" string for the provided text using the client's public key.
+   *
+   * <p>Important: In standard cryptography, a signature is created with a private key and
+   * verified with a public key (e.g., via RSASSA). This helper instead uses the client's
+   * public key to produce a Base64-encoded RSA ciphertext of the input text, which can serve
+   * as a public-key-encrypted token in flows where the counterpart will decrypt it with the
+   * private key. It does not produce an RSASSA signature.</p>
+   *
+   * @param clientId the client's identifier whose public key will be used
+   * @param text the plaintext to transform
+   * @param publicKeysYaml the store used to resolve the client's public key
+   * @return Base64-encoded RSA ciphertext of the text using the client's public key
+   * @throws IllegalArgumentException if the clientId is unknown or the key cannot be found
+   * @throws RuntimeException if the encryption fails
+   */
+  public static String createSignatureForText(String clientId,
+                                              String text,
+                                              ClientPublicKeysYaml publicKeysYaml) {
+    Objects.requireNonNull(clientId, "clientId");
+    Objects.requireNonNull(text, "text");
+    Objects.requireNonNull(publicKeysYaml, "publicKeysYaml");
+
+    PublicKey publicKey = publicKeysYaml.getPublicKey(clientId)
+        .orElseThrow(() -> new IllegalArgumentException("Unknown clientId or public key not found: " + clientId));
+
+    return encryptToBase64(text, publicKey);
   }
 
   // todo -> Need to verify that this works. Looks right...
@@ -216,63 +305,6 @@ public class HostOriginBoundAuthorization {
     }
   }
 
-  // ==================== JWT (RS256) generation ====================
-  /**
-   * Generates a compact JWT (JWS) signed with RS256 using the provided PrivateKey.
-   *
-   * <p>Standard claims included:
-   * - iss (issuer), sub (subject), aud (audience), iat (issued-at), exp (expiration)
-   *
-   * <p>You can provide additional claims via additionalClaims (String, Number, Boolean values only).
-   *
-   * @param privateKey RSA private key for RS256 signing
-   * @param subject JWT subject (sub)
-   * @param issuer JWT issuer (iss)
-   * @param audience JWT audience (aud)
-   * @param ttlSeconds time-to-live in seconds from now
-   * @param additionalClaims optional additional claims to include (String, Number, Boolean)
-   * @return compact serialized JWT string
-   */
-  public static String generateJwtToken(PrivateKey privateKey,
-                                        String subject,
-                                        String issuer,
-                                        String audience,
-                                        long ttlSeconds,
-                                        Map<String, Object> additionalClaims) {
-    Objects.requireNonNull(privateKey, "privateKey");
-    long nowSec = System.currentTimeMillis() / 1000L;
-    long expSec = nowSec + Math.max(0, ttlSeconds);
-
-    String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
-
-    Map<String, Object> payload = new LinkedHashMap<>();
-    if (issuer != null) payload.put("iss", issuer);
-    if (subject != null) payload.put("sub", subject);
-    if (audience != null) payload.put("aud", audience);
-    payload.put("iat", nowSec);
-    payload.put("exp", expSec);
-    if (additionalClaims != null) {
-      for (Map.Entry<String, Object> e : additionalClaims.entrySet()) {
-        String k = e.getKey();
-        Object v = e.getValue();
-        if (k == null || k.isBlank()) continue;
-        if (v == null) continue;
-        if (v instanceof String || v instanceof Number || v instanceof Boolean) {
-          payload.put(k, v);
-        }
-      }
-    }
-
-    String payloadJson = toJsonObject(payload);
-
-    String headerB64 = base64UrlEncode(headerJson.getBytes(StandardCharsets.UTF_8));
-    String payloadB64 = base64UrlEncode(payloadJson.getBytes(StandardCharsets.UTF_8));
-    String signingInput = headerB64 + "." + payloadB64;
-
-    byte[] sigBytes = signRs256(privateKey, signingInput.getBytes(StandardCharsets.UTF_8));
-    String sigB64 = base64UrlEncode(sigBytes);
-    return signingInput + "." + sigB64;
-  }
 
   private static byte[] signRs256(PrivateKey privateKey, byte[] data) {
     try {
