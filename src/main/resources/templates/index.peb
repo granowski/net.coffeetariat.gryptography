@@ -1,0 +1,17 @@
+<html>
+<head>
+    <title>{{ apiTitleAndVersion }}</title>
+</head>
+<body>
+<h1>{{ apiTitleAndVersion }}</h1>
+
+<div><p>Count of clients is {{ countOfClients }}</p></div>
+
+<div>
+{% for client in clientsAndPublicKeys %}
+  <div><span class="id">{{ client.key }}</span><span class="public-key">{{ client.value }}</span></div>
+{% endfor %}
+</div>
+
+</body>
+</html>

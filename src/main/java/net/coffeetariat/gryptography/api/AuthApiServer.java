@@ -3,6 +3,8 @@ package net.coffeetariat.gryptography.api;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+import io.pebbletemplates.pebble.PebbleEngine;
+import io.pebbletemplates.pebble.template.PebbleTemplate;
 import net.coffeetariat.gryptography.auth.ChallengeInquiry;
 import net.coffeetariat.gryptography.auth.HostOriginBoundAuthorization;
 import net.coffeetariat.gryptography.lib.ClientPublicKeysYaml;
@@ -12,6 +14,8 @@ import net.coffeetariat.gryptography.api.MediaTypes;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URLDecoder;
@@ -20,6 +24,8 @@ import java.nio.file.Path;
 import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 // todo -> create a POST endpoint that will process a challenge from the client.
@@ -46,6 +52,9 @@ public class AuthApiServer {
   private final ClientPublicKeysYaml publicKeysYaml;
 
   public AuthApiServer(int port, Path yamlPath) throws IOException {
+    PebbleEngine engine = new PebbleEngine.Builder().build();
+    PebbleTemplate compiledTemplate = engine.getTemplate("templates/index.peb");
+
     this.publicKeysYaml = new ClientPublicKeysYaml(yamlPath);
     this.server = HttpServer.create(new InetSocketAddress(port), 0);
 
@@ -64,44 +73,18 @@ public class AuthApiServer {
         return;
       }
 
-      String path = exchange.getRequestURI().getPath();
-      if (path == null || "/".equals(path)) {
-        path = "/index.html"; // default document
-      }
-      // Normalize and prevent path traversal
-      if (path.contains("..")) {
-        respond(exchange, 400, "bad request", MediaTypes.TEXT_PLAIN.value());
-        return;
-      }
+      Writer writer = new StringWriter();
 
-      // Serve from classpath under /public
-      String resourcePath = "public" + path; // e.g., public/index.html
-      try (var in = Thread.currentThread().getContextClassLoader().getResourceAsStream(resourcePath)) {
-        if (in == null) {
-          respond(exchange, 404, "not found", MediaTypes.TEXT_PLAIN.value());
-          return;
-        }
-        byte[] bytes = in.readAllBytes();
+      Map<String, Object> context = new HashMap<>();
+      context.put("apiTitleAndVersion", "Grypto API Server - version 1.0");
+      context.put("countOfClients", publicKeysYaml.listClients().size());
+      context.put("clientsAndPublicKeys", publicKeysYaml.listClientsAndPublicKeys());
 
-        // Pick content type
-        String contentType = contentTypeFor(path);
+      compiledTemplate.evaluate(writer, context);
 
-        // Headers and caching policy (reusing your style)
-        Headers headers = exchange.getResponseHeaders();
-        headers.set("Content-Type", contentType + "; charset=utf-8");
-        headers.set("Access-Control-Allow-Origin", "*");
-        headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-        headers.set("Access-Control-Allow-Headers", "Content-Type");
-        // For HTML, avoid caching while developing; adjust for prod as needed
-        addNoCache(headers);
+      String output = writer.toString();
 
-        exchange.sendResponseHeaders(200, bytes.length);
-        try (var os = exchange.getResponseBody()) {
-          os.write(bytes);
-        }
-      } catch (IOException e) {
-        respond(exchange, 500, "internal server error", MediaTypes.TEXT_PLAIN.value());
-      }
+      respond(exchange, 200, output, "text/html");
     });
 
     // Use a small thread pool

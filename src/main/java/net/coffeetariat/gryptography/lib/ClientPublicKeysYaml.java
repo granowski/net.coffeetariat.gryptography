@@ -86,6 +86,10 @@ public class ClientPublicKeysYaml {
     return Collections.unmodifiableSet(data.keySet());
   }
 
+  public synchronized Map<String, String> listClientsAndPublicKeys() {
+    return this.data;
+  }
+
   /**
    * Retrieves a client's RSA public key from the store.
    *
