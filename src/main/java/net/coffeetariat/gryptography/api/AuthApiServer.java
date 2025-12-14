@@ -58,6 +58,68 @@ public class AuthApiServer {
     this.publicKeysYaml = new ClientPublicKeysYaml(yamlPath);
     this.server = HttpServer.create(new InetSocketAddress(port), 0);
 
+    // Web Static Files
+    // Serve static files from classpath: src/main/resources/www/** -> GET /www/**
+    server.createContext("/www", exchange -> {
+      String method = exchange.getRequestMethod();
+      if ("OPTIONS".equalsIgnoreCase(method)) {
+        respond(exchange, 204, "", MediaTypes.TEXT_PLAIN.value());
+        return;
+      }
+      if (!"GET".equalsIgnoreCase(method) && !"HEAD".equalsIgnoreCase(method)) {
+        respond(exchange, 405, "method not allowed", MediaTypes.TEXT_PLAIN.value());
+        return;
+      }
+
+      // Compute the requested resource path under classpath folder "www"
+      String requestPath = exchange.getRequestURI().getPath(); // e.g. /www/index.css
+      String subPath = requestPath.substring("/www".length()); // e.g. /index.css or ""
+      if (subPath.isEmpty() || "/".equals(subPath)) {
+        // default file if someone hits /www or /www/
+        subPath = "/index.html"; // change if you prefer another default
+      }
+
+      // Prevent path traversal and normalize
+      String normalized = subPath.replace('\\', '/');
+      if (normalized.contains("..")) {
+        respond(exchange, 400, "bad path", MediaTypes.TEXT_PLAIN.value());
+        return;
+      }
+
+      String classpathLocation = "www" + normalized; // e.g. www/index.css
+
+      try (java.io.InputStream is = Thread.currentThread()
+          .getContextClassLoader()
+          .getResourceAsStream(classpathLocation)) {
+        if (is == null) {
+          respond(exchange, 404, "not found", MediaTypes.TEXT_PLAIN.value());
+          return;
+        }
+
+        // Content-Type based on extension
+        String contentType = contentTypeFor(classpathLocation);
+
+        // Small caching for static assets (adjust as you like)
+        Headers headers = exchange.getResponseHeaders();
+        headers.set("Content-Type", contentType);
+        headers.set("Cache-Control", "public, max-age=3600");
+
+        if ("HEAD".equalsIgnoreCase(method)) {
+          exchange.sendResponseHeaders(200, -1);
+          exchange.close();
+          return;
+        }
+
+        byte[] bytes = is.readAllBytes();
+        exchange.sendResponseHeaders(200, bytes.length);
+        try (OutputStream os = exchange.getResponseBody()) {
+          os.write(bytes);
+        }
+      } catch (IOException e) {
+        respond(exchange, 500, "internal server error", MediaTypes.TEXT_PLAIN.value());
+      }
+    });
+
     // Basic endpoints
     server.createContext("/health", this::handleHealth);
     server.createContext("/api/clients", this::handleClientsRoot);

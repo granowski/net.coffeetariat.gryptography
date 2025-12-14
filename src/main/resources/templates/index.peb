@@ -1,6 +1,7 @@
 <html>
 <head>
     <title>{{ apiTitleAndVersion }}</title>
+    <link href="/www/index.css" rel="stylesheet" />
 </head>
 <body>
 <h1>{{ apiTitleAndVersion }}</h1>
