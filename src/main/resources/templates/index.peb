@@ -6,6 +6,17 @@
 <body>
 <h1>{{ apiTitleAndVersion }}</h1>
 
+<section class="endpoints">
+  <h2>Supported endpoints</h2>
+  <ul class="endpoint-list">
+    <li><span class="method">GET</span> <code>/health</code> — Health check</li>
+    <li><span class="method">GET</span> <code>/api/clients/{clientId}/public-key</code> — Returns the client's public key (PEM)</li>
+    <li><span class="method">GET</span> <code>/api/clients/{clientId}/new-private-key</code> — Generates a new key pair, stores public key, returns the private key (PEM)</li>
+    <li><span class="method">GET</span> <code>/api/challenge?clientId={clientId}</code> — Returns a challenge in JSON (default) or YAML depending on <code>Accept</code> header</li>
+  </ul>
+
+</section>
+
 <div><p>Count of clients is {{ countOfClients }}</p></div>
 
 <div>
