@@ -13,8 +13,18 @@
     <li><span class="method">GET</span> <code>/api/clients/{clientId}/public-key</code> — Returns the client's public key (PEM)</li>
     <li><span class="method">GET</span> <code>/api/clients/{clientId}/new-private-key</code> — Generates a new key pair, stores public key, returns the private key (PEM)</li>
     <li><span class="method">GET</span> <code>/api/challenge?clientId={clientId}</code> — Returns a challenge in JSON (default) or YAML depending on <code>Accept</code> header</li>
+    <li><span class="method">POST</span> <code>/api/answer?clientId={clientId}</code> — Verify challenge answer and issue JWT. Body: <code>application/x-www-form-urlencoded</code> with fields <code>sessionId</code> and <code>answer</code> (Base64). Returns JSON token.</li>
   </ul>
 
+</section>
+
+<section class="sample-interaction">
+  <h2>Sample Interaction In cURLs</h2>
+  <ul>
+    <li>curl http://localhost:8080/api/clients/your-client-id/new-private-key</li>
+    <li>curl 'http://localhost:8080/api/challenge?clientId=your-client-id' -X 'GET'</li>
+    <li>curl -d "answer=signed-answer-goes-here&sessionId=session-from-challenge-request" "http://localhost:8080/api/answer?clientId=your-client-id"
+  </ul>
 </section>
 
 <div><p>Count of clients is {{ countOfClients }}</p></div>

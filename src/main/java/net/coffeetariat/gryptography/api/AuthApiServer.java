@@ -6,8 +6,11 @@ import com.sun.net.httpserver.HttpServer;
 import io.pebbletemplates.pebble.PebbleEngine;
 import io.pebbletemplates.pebble.template.PebbleTemplate;
 import net.coffeetariat.gryptography.auth.ChallengeInquiry;
+import net.coffeetariat.gryptography.auth.ChallengeAnswer;
+import net.coffeetariat.gryptography.auth.JWTToken;
 import net.coffeetariat.gryptography.auth.HostOriginBoundAuthorization;
 import net.coffeetariat.gryptography.lib.ClientPublicKeysYaml;
+import net.coffeetariat.gryptography.lib.ClientPrivateKeysYaml;
 import net.coffeetariat.gryptography.lib.RSAKeyPairGenerator;
 import net.coffeetariat.gryptography.lib.Utilities;
 import net.coffeetariat.gryptography.api.MediaTypes;
@@ -50,12 +53,16 @@ public class AuthApiServer {
 
   private final HttpServer server;
   private final ClientPublicKeysYaml publicKeysYaml;
+  private final ClientPrivateKeysYaml privateKeysYaml;
 
   public AuthApiServer(int port, Path yamlPath) throws IOException {
     PebbleEngine engine = new PebbleEngine.Builder().build();
     PebbleTemplate compiledTemplate = engine.getTemplate("templates/index.peb");
 
     this.publicKeysYaml = new ClientPublicKeysYaml(yamlPath);
+    // Private keys store (used to sign JWTs for demo purposes)
+    Path privYamlPath = Path.of("clients-and-private-keys.yaml");
+    this.privateKeysYaml = new ClientPrivateKeysYaml(privYamlPath);
     this.server = HttpServer.create(new InetSocketAddress(port), 0);
 
     // Web Static Files
@@ -124,6 +131,7 @@ public class AuthApiServer {
     server.createContext("/health", this::handleHealth);
     server.createContext("/api/clients", this::handleClientsRoot);
     server.createContext("/api/challenge", this::handleChallenge);
+    server.createContext("/api/answer", this::handleAnswer);
     server.createContext("/", exchange -> {
       String method = exchange.getRequestMethod();
       if ("OPTIONS".equalsIgnoreCase(method)) {
@@ -132,6 +140,13 @@ public class AuthApiServer {
       }
       if (!"GET".equalsIgnoreCase(method)) {
         respond(exchange, 405, "method not allowed", MediaTypes.TEXT_PLAIN.value());
+        return;
+      }
+
+      // Only render the index for the exact root path. Any other unknown path -> 404.
+      String requestPath = exchange.getRequestURI().getPath();
+      if (!"/".equals(requestPath)) {
+        respond(exchange, 404, "not found", MediaTypes.TEXT_PLAIN.value());
         return;
       }
 
@@ -239,6 +254,7 @@ public class AuthApiServer {
     try {
       KeyPair keyPair = RSAKeyPairGenerator.generate();
       PrivateKey privateKey = publicKeysYaml.register(clientId, keyPair); // stores only public key
+      privateKeysYaml.register(clientId, privateKey);
       String pem = Utilities.toPem(privateKey);
       respond(exchange, 201, pem, MediaTypes.TEXT_PLAIN.value());
     } catch (Exception e) {
@@ -292,6 +308,93 @@ public class AuthApiServer {
       respond(exchange, 200, body, contentType);
     } catch (IllegalArgumentException e) {
       respond(exchange, 404, "client not found", MediaTypes.TEXT_PLAIN.value());
+    } catch (Exception e) {
+      respond(exchange, 500, "internal server error", MediaTypes.TEXT_PLAIN.value());
+    }
+  }
+
+  private void handleAnswer(HttpExchange exchange) throws IOException {
+    String method = exchange.getRequestMethod();
+    if ("OPTIONS".equalsIgnoreCase(method)) {
+      respond(exchange, 204, "", MediaTypes.TEXT_PLAIN.value());
+      return;
+    }
+    if (!"POST".equalsIgnoreCase(method)) {
+      respond(exchange, 405, "method not allowed", MediaTypes.TEXT_PLAIN.value());
+      return;
+    }
+    addNoCache(exchange.getResponseHeaders());
+
+    // Parse query param clientId
+    URI uri = exchange.getRequestURI();
+    String query = uri.getQuery();
+    String clientId = getQueryParam(query, "clientId");
+    if (clientId == null || clientId.isBlank()) {
+      respond(exchange, 400, "missing required query parameter: clientId", MediaTypes.TEXT_PLAIN.value());
+      return;
+    }
+
+    // Expect application/x-www-form-urlencoded body with fields: sessionId, answer (Base64)
+    String contentType = Optional.ofNullable(exchange.getRequestHeaders().getFirst("Content-Type")).orElse("");
+    if (!contentType.toLowerCase().contains("application/x-www-form-urlencoded")) {
+      respond(exchange, 415, "unsupported media type (expected application/x-www-form-urlencoded)", MediaTypes.TEXT_PLAIN.value());
+      return;
+    }
+
+    String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+    Map<String, String> form = new HashMap<>();
+    if (!body.isEmpty()) {
+      String[] pairs = body.split("&");
+      for (String p : pairs) {
+        int idx = p.indexOf('=');
+        String key = idx >= 0 ? p.substring(0, idx) : p;
+        String val = idx >= 0 ? p.substring(idx + 1) : "";
+        try {
+          key = URLDecoder.decode(key, StandardCharsets.UTF_8);
+          val = URLDecoder.decode(val, StandardCharsets.UTF_8);
+        } catch (Exception ignored) {}
+        form.put(key, val);
+      }
+    }
+
+    String sessionId = form.get("sessionId");
+    String encryptedAnswerB64 = form.get("answer");
+    if (sessionId == null || sessionId.isBlank() || encryptedAnswerB64 == null || encryptedAnswerB64.isBlank()) {
+      respond(exchange, 400, "missing required form fields: sessionId and answer", MediaTypes.TEXT_PLAIN.value());
+      return;
+    }
+
+    try {
+      // Decrypt provided answer (which was produced with client's private key) using client's public key
+      ChallengeAnswer ca = new ChallengeAnswer(sessionId, encryptedAnswerB64, null);
+      String plaintextAnswer = HostOriginBoundAuthorization.decryptAnswerWithClientPrivateKey(ca, privateKeysYaml);
+
+      // Verify it matches the expected session answer
+      boolean ok = HostOriginBoundAuthorization.verifyAndConsumeAnswer(sessionId, plaintextAnswer);
+      if (!ok) {
+        respond(exchange, 401, "invalid answer", MediaTypes.TEXT_PLAIN.value());
+        return;
+      }
+
+      // On success, issue a short-lived JWT for this client
+      var maybePriv = privateKeysYaml.getPrivateKey(clientId);
+      if (maybePriv.isEmpty()) {
+        respond(exchange, 500, "signing key not available for client", MediaTypes.TEXT_PLAIN.value());
+        return;
+      }
+      var priv = maybePriv.get();
+      long ttlSeconds = 3600;
+      String token = JWTToken.generate(priv, clientId, "grypto-auth", "grypto-api", ttlSeconds, Map.of("clientId", clientId));
+
+      String json = "{" +
+          "\"token\":\"" + token + "\"," +
+          "\"token_type\":\"Bearer\"," +
+          "\"expires_in\":" + ttlSeconds +
+          "}";
+
+      respond(exchange, 200, json, MediaTypes.APPLICATION_JSON.value());
+    } catch (IllegalArgumentException e) {
+      respond(exchange, 404, "client or session not found", MediaTypes.TEXT_PLAIN.value());
     } catch (Exception e) {
       respond(exchange, 500, "internal server error", MediaTypes.TEXT_PLAIN.value());
     }

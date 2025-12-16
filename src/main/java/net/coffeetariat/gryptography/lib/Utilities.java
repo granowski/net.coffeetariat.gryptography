@@ -1,8 +1,11 @@
 package net.coffeetariat.gryptography.lib;
 
+import javax.crypto.Cipher;
+import java.nio.charset.StandardCharsets;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.Base64;
+import java.util.Objects;
 
 /**
  * Miscellaneous helper utilities for cryptography-related tasks.
