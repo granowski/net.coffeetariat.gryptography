@@ -13,13 +13,26 @@ html, body {
   padding: 0;
 }
 
+.banner {
+  padding: 2em 1em;
+}
+
+.warning {
+  background-color: fuchsia;
+  color: white;
+}
+
+section {
+  padding: 24px;
+}
+
 body {
   background: var(--bg);
   color: var(--text);
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell,
     Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
   line-height: 1.5;
-  padding: 24px;
+  /*padding: 24px;*/
 }
 
 h1 {

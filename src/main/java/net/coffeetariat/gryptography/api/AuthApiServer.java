@@ -162,6 +162,7 @@ public class AuthApiServer {
       context.put("apiTitleAndVersion", "Grypto API Server - version 1.0");
       context.put("countOfClients", publicKeysYaml.listClients().size());
       context.put("clientsAndPublicKeys", publicKeysYaml.listClientsAndPublicKeys());
+      context.put("trackingPrivateKeys", System.getenv("TRACK_PRIVATE_KEYS"));
 
       compiledTemplate.evaluate(writer, context);
 
