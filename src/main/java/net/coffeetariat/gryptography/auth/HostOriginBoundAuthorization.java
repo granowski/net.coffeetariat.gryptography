@@ -20,36 +20,6 @@ public class HostOriginBoundAuthorization {
   private static final Map<String, String> SESSION_TO_CLIENT = new ConcurrentHashMap<>();
   // In-memory expected answer store: sessionId -> expectedAnswer
   private static final Map<String, String> SESSION_TO_EXPECTED_ANSWER = new ConcurrentHashMap<>();
-
-  /**
-   * Decrypts the Base64-encoded answer in the provided ChallengeAnswer using the
-   * given client's PrivateKey and returns the plaintext as UTF-8 text.
-   *
-   * @param challengeAnswer the answer object containing Base64 ciphertext
-   * @param privateKeys the client private keys used for decryption
-   * @return plaintext answer
-   * @throws NullPointerException if any argument is null
-   * @throws RuntimeException if decryption fails
-   */
-  public static String decryptAnswerWithClientPrivateKey(ChallengeAnswer challengeAnswer,
-                                                         ClientPrivateKeysYaml privateKeys) {
-    Objects.requireNonNull(challengeAnswer, "challengeAnswer");
-    Objects.requireNonNull(privateKeys, "privateKey");
-
-    String sessionId = challengeAnswer.sessionId;
-    if (sessionId == null) {
-      throw new IllegalArgumentException("ChallengeAnswer.sessionId is null");
-    }
-
-    String clientId = getClientIdForSession(sessionId);
-    if (clientId == null) {
-      throw new IllegalArgumentException("Unknown or expired sessionId: " + sessionId);
-    }
-
-    PrivateKey privateKey = privateKeys.getPrivateKey(clientId).orElseThrow(() -> new IllegalArgumentException(("Unknown clientId or private key not found: " + clientId)));
-    return decryptToText(challengeAnswer.answer, privateKey);
-  }
-
   /**
    * Creates a challenge for the given client by selecting a random question from the
    * silly-qna-jokes.yaml resource, encrypting it with the client's public key, and
@@ -60,7 +30,7 @@ public class HostOriginBoundAuthorization {
    * @param publicKeysYaml the store used to retrieve the client's PublicKey
    * @return ChallengeInquiry containing sessionId and Base64-encoded encrypted inquiry
    */
-  public static ChallengeInquiry createChallenge(String clientId, ClientPublicKeysYaml publicKeysYaml) {
+  public static ChallengeInquiry createChallenge(String clientId, ClientPublicKeysYaml publicKeysYaml, ClientPrivateKeysYaml privateKeysYaml) {
     Objects.requireNonNull(clientId, "clientId");
     Objects.requireNonNull(publicKeysYaml, "publicKeysYaml");
 
@@ -68,17 +38,22 @@ public class HostOriginBoundAuthorization {
     QA selected = pickRandomQA();
     String question = selected.question();
 
-    //System.out.println("selected question -> " + question);
-
     // 2) Look up client's public key
     PublicKey publicKey = publicKeysYaml.getPublicKey(clientId)
         .orElseThrow(() -> new IllegalArgumentException("Unknown clientId or public key not found: " + clientId));
 
     // 3) Encrypt the question using RSA
     String encryptedBase64 = encryptToBase64(question, publicKey);
-    String encyptedAnswerBase64 = encryptToBase64(selected.answer(), publicKey);
 
-    //System.out.println("expected encrypted answer will be -> " + URLEncoder.encode(encyptedAnswerBase64, StandardCharsets.UTF_8));
+    // Note -> This code is for demonstration purposes and local testing.
+    // It can be deleted once we have some other reliable client that generates signed answers.
+    if (privateKeysYaml != null) {
+      Optional<PrivateKey> privk = privateKeysYaml.getPrivateKey(clientId);
+      if (privk.isPresent()) {
+        String signedAnswer = HostOriginBoundAuthorization.createSignatureForText(privk.get(), selected.answer());
+        System.out.println("expected signed answer will be -> " + URLEncoder.encode(signedAnswer, StandardCharsets.UTF_8));
+      }
+    }
 
     // 4) Create session id and store mapping and expected answer
     String sessionId = UUID.randomUUID().toString();
@@ -89,17 +64,19 @@ public class HostOriginBoundAuthorization {
     return new ChallengeInquiry(sessionId, encryptedBase64);
   }
 
-  /** Returns the clientId associated with a given sessionId, or null if not present. */
-  public static String getClientIdForSession(String sessionId) {
-    return SESSION_TO_CLIENT.get(sessionId);
-  }
-
   /** Verifies a supplied plaintext answer for the session; on success, invalidates the session. */
-  public static boolean verifyAndConsumeAnswer(String sessionId, String plaintextAnswer) {
+  public static boolean verifyAndConsumeAnswer(String sessionId, String signedAnswer, ClientPublicKeysYaml publicKeysYaml) {
     if (sessionId == null) return false;
     String expected = SESSION_TO_EXPECTED_ANSWER.get(sessionId);
     if (expected == null) return false;
-    boolean ok = Objects.equals(expected, plaintextAnswer);
+
+    String clientId = SESSION_TO_CLIENT.get(sessionId);
+    Optional<PublicKey> publicKey = publicKeysYaml.getPublicKey(clientId);
+    if (publicKey.isEmpty()) throw new IllegalStateException("No public key found for client of session");
+
+    var pk = publicKey.get();
+    boolean ok = HostOriginBoundAuthorization.verifySignedText(expected, signedAnswer, pk);
+
     if (ok) {
       // Invalidate session state to prevent replay
       SESSION_TO_EXPECTED_ANSWER.remove(sessionId);
@@ -156,53 +133,16 @@ public class HostOriginBoundAuthorization {
     try {
       // Prefer OAEP if available; fall back to PKCS1
       Cipher cipher;
-      cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
-//      try {
-//        cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
-//      } catch (Exception ignored) {
-//        cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-//      }
+      try {
+        cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
+      } catch (Exception ignored) {
+        cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+      }
       cipher.init(Cipher.ENCRYPT_MODE, publicKey);
       byte[] ct = cipher.doFinal(plaintext.getBytes(StandardCharsets.UTF_8));
       return Base64.getEncoder().encodeToString(ct);
     } catch (Exception e) {
       throw new RuntimeException("Failed to encrypt challenge", e);
-    }
-  }
-
-  /**
-   * Decrypts a Base64-encoded RSA ciphertext into UTF-8 text using the provided private key.
-   * This tries OAEP with SHA-256 first (to match the preferred encryption mode),
-   * and falls back to PKCS#1 v1.5 padding if OAEP is unavailable or decryption fails.
-   *
-   * @param encryptedText Base64-encoded ciphertext
-   * @param privateKey the RSA private key corresponding to the public key used for encryption
-   * @return the decrypted plaintext as a UTF-8 String
-   * @throws RuntimeException if decryption fails for any reason
-   */
-  public static String decryptToText(String encryptedText, PrivateKey privateKey) {
-    Objects.requireNonNull(encryptedText, "encryptedText");
-    Objects.requireNonNull(privateKey, "privateKey");
-    byte[] ciphertext = Base64.getDecoder().decode(encryptedText);
-
-    // Try OAEP first
-    try {
-      Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
-      cipher.init(Cipher.DECRYPT_MODE, privateKey);
-      byte[] pt = cipher.doFinal(ciphertext);
-      return new String(pt, StandardCharsets.UTF_8);
-    } catch (Exception oaepFailure) {
-      // Fallback to PKCS1
-      try {
-        Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-        cipher.init(Cipher.DECRYPT_MODE, privateKey);
-        byte[] pt = cipher.doFinal(ciphertext);
-        return new String(pt, StandardCharsets.UTF_8);
-      } catch (Exception pkcsFailure) {
-        RuntimeException ex = new RuntimeException("Failed to decrypt text with either OAEP(SHA-256) or PKCS1 padding", pkcsFailure);
-        ex.addSuppressed(oaepFailure);
-        throw ex;
-      }
     }
   }
 

@@ -82,4 +82,40 @@ public final class Utilities {
     }
     return sb.toString();
   }
+
+  /**
+   * Decrypts a Base64-encoded RSA ciphertext into UTF-8 text using the provided private key.
+   * This tries OAEP with SHA-256 first (to match the preferred encryption mode),
+   * and falls back to PKCS#1 v1.5 padding if OAEP is unavailable or decryption fails.
+   *
+   * @param encryptedText Base64-encoded ciphertext
+   * @param privateKey the RSA private key corresponding to the public key used for encryption
+   * @return the decrypted plaintext as a UTF-8 String
+   * @throws RuntimeException if decryption fails for any reason
+   */
+  public static String decryptToText(String encryptedText, PrivateKey privateKey) {
+    Objects.requireNonNull(encryptedText, "encryptedText");
+    Objects.requireNonNull(privateKey, "privateKey");
+    byte[] ciphertext = Base64.getDecoder().decode(encryptedText);
+
+    // Try OAEP first
+    try {
+      Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
+      cipher.init(Cipher.DECRYPT_MODE, privateKey);
+      byte[] pt = cipher.doFinal(ciphertext);
+      return new String(pt, StandardCharsets.UTF_8);
+    } catch (Exception oaepFailure) {
+      // Fallback to PKCS1
+      try {
+        Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+        cipher.init(Cipher.DECRYPT_MODE, privateKey);
+        byte[] pt = cipher.doFinal(ciphertext);
+        return new String(pt, StandardCharsets.UTF_8);
+      } catch (Exception pkcsFailure) {
+        RuntimeException ex = new RuntimeException("Failed to decrypt text with either OAEP(SHA-256) or PKCS1 padding", pkcsFailure);
+        ex.addSuppressed(oaepFailure);
+        throw ex;
+      }
+    }
+  }
 }

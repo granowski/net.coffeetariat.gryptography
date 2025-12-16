@@ -6,14 +6,12 @@ import com.sun.net.httpserver.HttpServer;
 import io.pebbletemplates.pebble.PebbleEngine;
 import io.pebbletemplates.pebble.template.PebbleTemplate;
 import net.coffeetariat.gryptography.auth.ChallengeInquiry;
-import net.coffeetariat.gryptography.auth.ChallengeAnswer;
 import net.coffeetariat.gryptography.auth.JWTToken;
 import net.coffeetariat.gryptography.auth.HostOriginBoundAuthorization;
 import net.coffeetariat.gryptography.lib.ClientPublicKeysYaml;
 import net.coffeetariat.gryptography.lib.ClientPrivateKeysYaml;
 import net.coffeetariat.gryptography.lib.RSAKeyPairGenerator;
 import net.coffeetariat.gryptography.lib.Utilities;
-import net.coffeetariat.gryptography.api.MediaTypes;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -289,7 +287,7 @@ public class AuthApiServer {
     }
 
     try {
-      ChallengeInquiry inquiry = HostOriginBoundAuthorization.createChallenge(clientId, publicKeysYaml);
+      ChallengeInquiry inquiry = HostOriginBoundAuthorization.createChallenge(clientId, publicKeysYaml, privateKeysYaml);
 
       // Content negotiation for Accept header
       Headers reqHeaders = exchange.getRequestHeaders();
@@ -358,19 +356,15 @@ public class AuthApiServer {
     }
 
     String sessionId = form.get("sessionId");
-    String encryptedAnswerB64 = form.get("answer");
-    if (sessionId == null || sessionId.isBlank() || encryptedAnswerB64 == null || encryptedAnswerB64.isBlank()) {
+    String signedAnswer = form.get("answer");
+    if (sessionId == null || sessionId.isBlank() || signedAnswer == null || signedAnswer.isBlank()) {
       respond(exchange, 400, "missing required form fields: sessionId and answer", MediaTypes.TEXT_PLAIN.value());
       return;
     }
 
     try {
-      // Decrypt provided answer (which was produced with client's private key) using client's public key
-      ChallengeAnswer ca = new ChallengeAnswer(sessionId, encryptedAnswerB64, null);
-      String plaintextAnswer = HostOriginBoundAuthorization.decryptAnswerWithClientPrivateKey(ca, privateKeysYaml);
-
+      boolean ok = HostOriginBoundAuthorization.verifyAndConsumeAnswer(sessionId, signedAnswer, publicKeysYaml);
       // Verify it matches the expected session answer
-      boolean ok = HostOriginBoundAuthorization.verifyAndConsumeAnswer(sessionId, plaintextAnswer);
       if (!ok) {
         respond(exchange, 401, "invalid answer", MediaTypes.TEXT_PLAIN.value());
         return;
@@ -400,7 +394,6 @@ public class AuthApiServer {
     }
   }
 
-  // todo -> review this code since it's very primitive looking.
   private static String getQueryParam(String query, String name) {
     if (query == null || query.isEmpty()) return null;
     String[] pairs = query.split("&");

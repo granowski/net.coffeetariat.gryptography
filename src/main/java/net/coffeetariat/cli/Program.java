@@ -1,16 +1,11 @@
 package net.coffeetariat.cli;
 
-import net.coffeetariat.gryptography.auth.ChallengeAnswer;
-import net.coffeetariat.gryptography.auth.ChallengeInquiry;
 import net.coffeetariat.gryptography.auth.HostOriginBoundAuthorization;
 import net.coffeetariat.gryptography.auth.JWTToken;
-import net.coffeetariat.gryptography.lib.ClientPrivateKeysYaml;
 import net.coffeetariat.gryptography.lib.ClientPublicKeysYaml;
 import net.coffeetariat.gryptography.lib.RSAKeyPairGenerator;
 
 import java.nio.file.Path;
-import java.security.PrivateKey;
-import java.util.UUID;
 
 public class Program {
   public static void main(String[] args) throws Exception {
@@ -53,15 +48,9 @@ public class Program {
     var pubkeys = new ClientPublicKeysYaml(Path.of("testing.public-keys.yaml"));
     pubkeys.register("123", testpair.getPublic());
 
-    var chal = HostOriginBoundAuthorization.createChallenge(
-        "123", pubkeys
-    );
-
     var answerData = "rawr";
 
     var sig = HostOriginBoundAuthorization.createSignatureForText(testpair.getPrivate(), answerData);
-
-    var ans = new ChallengeAnswer(chal.sessionId, answerData, sig);
 
     var verified = HostOriginBoundAuthorization.verifySignedText(answerData, sig, pubkeys.getPublicKey("123").get());
 
