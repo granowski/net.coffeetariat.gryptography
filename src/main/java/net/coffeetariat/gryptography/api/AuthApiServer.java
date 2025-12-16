@@ -27,6 +27,7 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 // todo -> create a POST endpoint that will process a challenge from the client.
@@ -53,6 +54,8 @@ public class AuthApiServer {
   private final ClientPublicKeysYaml publicKeysYaml;
   private final ClientPrivateKeysYaml privateKeysYaml;
 
+  private static boolean TRACK_PRIVATE_KEYS = false;
+
   public AuthApiServer(int port, Path yamlPath) throws IOException {
     PebbleEngine engine = new PebbleEngine.Builder().build();
     PebbleTemplate compiledTemplate = engine.getTemplate("templates/index.peb");
@@ -62,6 +65,11 @@ public class AuthApiServer {
     Path privYamlPath = Path.of("clients-and-private-keys.yaml");
     this.privateKeysYaml = new ClientPrivateKeysYaml(privYamlPath);
     this.server = HttpServer.create(new InetSocketAddress(port), 0);
+
+    String trackingPrivateKeys = System.getenv("TRACK_PRIVATE_KEYS");
+    if (Objects.equals(trackingPrivateKeys, "true")) {
+      TRACK_PRIVATE_KEYS = true;
+    }
 
     // Web Static Files
     // Serve static files from classpath: src/main/resources/www/** -> GET /www/**
@@ -252,7 +260,9 @@ public class AuthApiServer {
     try {
       KeyPair keyPair = RSAKeyPairGenerator.generate();
       PrivateKey privateKey = publicKeysYaml.register(clientId, keyPair); // stores only public key
-      privateKeysYaml.register(clientId, privateKey);
+
+      if (TRACK_PRIVATE_KEYS) privateKeysYaml.register(clientId, privateKey);
+
       String pem = Utilities.toPem(privateKey);
       respond(exchange, 201, pem, MediaTypes.TEXT_PLAIN.value());
     } catch (Exception e) {
